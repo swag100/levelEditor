@@ -20,11 +20,6 @@ class Player {
 
         this.yVelocity=0;
         this.xVelocity = 0;
-        this.h = 16;
-        this.w = 16;
-
-        this.jumpHeight=3.2;
-        this.speed=1;
 
         this.direction=false;//false=right, true=left
 
@@ -32,16 +27,33 @@ class Player {
         this.yCollided=true;
         
         this.image = new Image();
-        this.image.src = 'images/mario.png';
-        //this.data
-        
-        fetch("images/mario.json")
-        .then(r=>r.text())
-        .then(text => {
-            this.data = JSON.parse(text);
-        });
+        this.image.src = 'mario.png';
 
-        console.log(this.data);
+        this.animations = {
+            "die": [
+                {"x":0,"y":0,"w":16,"h":16}
+            ],
+
+            "smallIdle": [{"x":0,"y":0,"w":16,"h":16}],
+            "smallJump": [{"x":78,"y":0,"w":16,"h":16}],
+            "smallSkid": [{"x":64,"y":0,"w":16,"h":16}],
+            "smallWalk": [
+                {"x":16,"y":0,"w":16,"h":16},
+                {"x":32,"y":0,"w":16,"h":16},
+                {"x":48,"y":0,"w":16,"h":16}
+            ]
+        };
+
+        this.animName = "smallIdle";
+        this.animFrame = 0;
+
+        this.h = 16;//these are to be removed after anims are done
+        this.w = 16;
+
+        this.jumpHeight=3.2;
+        this.speed=1;
+
+        console.log(this.animations);
 
     }
 
@@ -89,14 +101,14 @@ class Player {
 
         this.yCollided=false;
         this.checkForCollisions(theTiles).forEach((tile) => {
-        if (this.yVelocity > 0) {
-            this.y = tile.y - this.h;
-            this.yCollided=true;
-        } else {
-            this.y = tile.y + tile.h;
-        }
+            if (this.yVelocity > 0) {
+                this.y = tile.y - this.h;
+                this.yCollided=true;
+            } else {
+                this.y = tile.y + tile.h;
+            }
 
-        this.yVelocity=0;
+            this.yVelocity=0;
         });
 
         //jump
@@ -107,16 +119,32 @@ class Player {
         //player leaves screen, make them come back
         if (this.y >= 180)
         {
-        this.y = -this.h
+        this.y = -this.h;
         }
+
+        //animtest
+        if (Date.now() % 200 <= 20) {
+            this.animFrame+=1;
+        }
+        console.log(Date.now(),Date.now() % 200,this.animFrame)
         
     }
 
     draw(ctx) {
         //ctx.fillStyle = this.color;
         //ctx.fillRect(this.x, this.y, this.w, this.h);
+
+        let modAnimFrame = this.animFrame % this.animations[this.animName].length;
         
-        flipAndDrawImage(ctx, this.image, 0,0,16,16, this.x, this.y, this.w, this.h, this.direction, false);
+        flipAndDrawImage(
+            ctx, this.image, 
+            this.animations[this.animName][modAnimFrame]['x'],
+            this.animations[this.animName][modAnimFrame]['y'],
+            this.x, this.y, 
+            this.animations[this.animName][modAnimFrame]['w'],
+            this.animations[this.animName][modAnimFrame]['h'],
+            this.direction, false
+        );
     }
 }
 
@@ -164,22 +192,22 @@ setInterval(main, 10);
 
 //utils
 
-function flipAndDrawImage(ctx, image, sx,sy,sw,sh, x,y, width, height, flipH, flipV) {
+function flipAndDrawImage(ctx, image, sx,sy, x,y, width, height, flipH, flipV) {
     ctx.save();
     ctx.translate(flipH ? width : 0, flipV ? height : 0);
     ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1); 
-    ctx.drawImage(image, sx,sy,sw,sh, flipH?-x:x, y, width, height);
+    ctx.drawImage(image, sx,sy,width, height, flipH?-x:x, y, width, height);
     ctx.restore();
 }
 
 function isKeyDown(keyName) {
-return (Object.keys(keysPressed).includes(keyName) && keysPressed[keyName])
+    return (Object.keys(keysPressed).includes(keyName) && keysPressed[keyName])
 }
 
 addEventListener("keydown", function(event){
-keysPressed[event.code] = true;
+    keysPressed[event.code] = true;
 });
 
 addEventListener("keyup", function(event){
-keysPressed[event.code] = false;
+    keysPressed[event.code] = false;
 });
