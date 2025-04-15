@@ -128,16 +128,14 @@ class Player {
         }
 
         //player leaves screen, make them come back
-        if (this.y >= 180)
-        {
-            this.y = -this.h;
-        }
+        if (this.y >= 180)this.y = -this.h;
 
         //animtest
-        this.animTick+=this.xVelocity;
+        this.animTick+=Math.abs(this.xVelocity);
         if(Math.floor(this.animTick) % 16 == 0){
             this.animFrame+=1;
         }
+        console.log(this.animTick);
 
         //if (this.animName)
         if (this.xVelocity != 0) {
