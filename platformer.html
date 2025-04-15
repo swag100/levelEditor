@@ -24,21 +24,29 @@
   }
 
   class Player {
-    constructor(x,y,color='#FF0000') {
+    constructor(x,y) {
       this.x = x; //10
       this.y = y; //20
 
       this.yVelocity=0;
       this.xVelocity = 0;
-      this.h = 24;
-      this.w = 24;
+      this.h = 32;
+      this.w = 32;
+
+      this.jumpHeight=9;
+      this.speed=2;
+
+      this.direction=false;//false=right, true=left
 
       this.terminalVelocity = 24;
 
       this.xCollided=false;
       this.yCollided=true;
 
-      this.color=color;
+      //this.color=color;
+      
+      this.image = new Image();
+      this.image.src = 'images/mario.png';
     }
 
     checkForCollisions(theTiles) {
@@ -57,7 +65,11 @@
     
     update(theTiles) {
       //move
-      this.xVelocity = ((isKeyDown('d') - isKeyDown('a')) * 4);
+      this.xVelocity = ((isKeyDown('d') - isKeyDown('a')) * this.speed);
+
+      if(this.xVelocity>0)this.direction=false;
+      if(this.xVelocity<0)this.direction=true;
+
       this.x += this.xVelocity;
 
       //check for collision x
@@ -92,10 +104,10 @@
       });
 
       if (this.yCollided && isKeyDown('w')) {
-        this.yVelocity-=9;
+        this.yVelocity-=this.jumpHeight;
       }
 
-      if (this.y >= 360) //player leaves screen
+      if (this.y >= 360) //player leaves screen, make them come back
       {
         this.y = -this.h
       }
@@ -103,14 +115,18 @@
     }
 
     draw(ctx) {
-      ctx.fillStyle = this.color;
-      ctx.fillRect(this.x, this.y, this.w, this.h);
+      //ctx.fillStyle = this.color;
+      //ctx.fillRect(this.x, this.y, this.w, this.h);
+      
+      flipAndDrawImage(ctx, this.image, 0,0,16,16, this.x, this.y, this.w, this.h, this.direction, false);
     }
   }
 
   const gravity = 0.4;
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled= false;
+
   let keysPressed = {};
 
   let thePlayer = new Player(10, 20);
@@ -123,6 +139,14 @@
   function main() {
     update();
     draw();
+  }
+
+  function flipAndDrawImage(ctx, image, sx,sy,sw,sh, x,y, width, height, flipH, flipV) {
+    ctx.save(); // Save the current transformation matrix
+    ctx.translate(flipH ? width : 0, flipV ? height : 0); // Move to the new origin point
+    ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1); // Scale to flip horizontally or vertically
+    ctx.drawImage(image, sx,sy,sw,sh, flipH?-x:x, y, width, height); // Draw the image
+    ctx.restore(); // Restore the saved transformation matrix
   }
 
   function isKeyDown(key) {
