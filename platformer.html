@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1 onclick="this.innerHTML = 'Ooops!'">Click on this text!</h1>
+<canvas id="canvas" width="480" height="360" style="border:1px solid black"></canvas>
+
+<script>
+  class Tile {
+    constructor(x,y,w,h,color='#000000') {
+      this.x = x;
+      this.y = y;
+      this.h = h;
+      this.w = w;
+      this.color=color;
+    }
+    
+    draw(ctx) {
+      ctx.fillStyle = this.color;
+      ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+  }
+
+  class Player {
+    constructor(x,y,color='#FF0000') {
+      this.x = x; //10
+      this.y = y; //20
+
+      this.yVelocity=0;
+      this.xVelocity = 0;
+      this.h = 24;
+      this.w = 24;
+
+      this.terminalVelocity = 24;
+
+      this.xCollided=false;
+      this.yCollided=true;
+
+      this.color=color;
+    }
+
+    checkForCollisions(theTiles) {
+      let collisions = [];
+      theTiles.forEach((tile) => {
+        if (this.x + this.w > tile.x && 
+            this.x < tile.x + tile.w && 
+            this.y + this.h > tile.y && 
+            this.y < tile.y + tile.h) 
+        {
+          collisions.push(tile);
+        }
+      });
+      return collisions;
+    }
+    
+    update(theTiles) {
+      //move
+      this.xVelocity = ((isKeyDown('d') - isKeyDown('a')) * 4);
+      this.x += this.xVelocity;
+
+      //check for collision x
+      this.xCollided=false;
+      this.checkForCollisions(theTiles).forEach((tile) => {
+        if (this.xVelocity > 0) {
+          this.x = tile.x - this.w;
+          this.xCollided=true;
+        } else {
+          this.x = tile.x + tile.w;
+        }
+      });
+      
+
+      // move 
+      this.yVelocity += gravity;
+      if (this.yVelocity >= this.terminalVelocity){
+        this.yVelocity=this.terminalVelocity;
+      }
+      this.y += this.yVelocity;
+
+      this.yCollided=false;
+      this.checkForCollisions(theTiles).forEach((tile) => {
+        if (this.yVelocity > 0) {
+          this.y = tile.y - this.h;
+          this.yCollided=true;
+        } else {
+          this.y = tile.y + tile.h;
+        }
+
+        this.yVelocity=0;
+      });
+
+      if (this.yCollided && isKeyDown('w')) {
+        this.yVelocity-=9;
+      }
+
+      if (this.y >= 360) //player leaves screen
+      {
+        this.y = -this.h
+      }
+      
+    }
+
+    draw(ctx) {
+      ctx.fillStyle = this.color;
+      ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+  }
+
+  const gravity = 0.4;
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  let keysPressed = {};
+
+  let thePlayer = new Player(10, 20);
+  let theTiles = [
+    new Tile(0, 300, 300, 45),
+    new Tile(200, 240, 200, 20),
+  ];
+
+
+  function main() {
+    update();
+    draw();
+  }
+
+  function isKeyDown(key) {
+    let keyName = "Key" + key.toUpperCase();
+    return (Object.keys(keysPressed).includes(keyName) && keysPressed[keyName])
+  }
+
+  function update() {
+    thePlayer.update(theTiles);
+    
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    thePlayer.draw(ctx);
+    theTiles.forEach(function(tile) {
+      tile.draw(ctx);
+    });
+  }
+
+  addEventListener("keydown", function(event){
+    keysPressed[event.code] = true;
+  });
+
+  addEventListener("keyup", function(event){
+    keysPressed[event.code] = false;
+  });
+
+  setInterval(main, 10);
+
+</script>
+
+</body>
+</html>
