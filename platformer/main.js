@@ -22,6 +22,7 @@ class Player {
         this.xVelocity = 0;
 
         this.direction=false;//false=right, true=left
+        this.running=false;
 
         this.xCollided=false;
         this.yCollided=true;
@@ -46,14 +47,16 @@ class Player {
 
         this.animName = "smallIdle";
         this.animFrame = 0;
+        this.animTick=0; // the thing we increment every update
 
         this.h = 16;//these are to be removed after anims are done
         this.w = 16;
 
         this.jumpHeight=3.2;
-        this.speed=1;
-
-        console.log(this.animations);
+        this.acceleration=0.08;
+        this.deceleration=0.16;
+        this.walkSpeed=1;
+        this.runSpeed=3;
 
     }
 
@@ -73,7 +76,15 @@ class Player {
 
     update(theTiles) {
         //move
-        this.xVelocity = ((isKeyDown('KeyD') - isKeyDown('KeyA')) * this.speed);
+        this.running = isKeyDown('ShiftLeft');
+
+        let directionValue= isKeyDown('KeyD') - isKeyDown('KeyA');
+        let maxSpeed = this.running ? this.runSpeed : this.walkSpeed;
+
+        this.xVelocity += directionValue * this.acceleration;
+        if (Math.abs(this.xVelocity) >= maxSpeed){
+            this.xVelocity = maxSpeed*directionValue;
+        }
 
         if(this.xVelocity>0)this.direction=false;
         if(this.xVelocity<0)this.direction=true;
@@ -91,7 +102,6 @@ class Player {
         }
         });
         
-
         // move 
         this.yVelocity += gravity;
         if (this.yVelocity >= terminalVelocity){
@@ -99,6 +109,7 @@ class Player {
         }
         this.y += this.yVelocity;
 
+        //check for collision y
         this.yCollided=false;
         this.checkForCollisions(theTiles).forEach((tile) => {
             if (this.yVelocity > 0) {
@@ -113,20 +124,27 @@ class Player {
 
         //jump
         if (this.yCollided && isKeyDown('Space')) {
-        this.yVelocity-=this.jumpHeight;
+            this.yVelocity-=this.jumpHeight;
         }
 
         //player leaves screen, make them come back
         if (this.y >= 180)
         {
-        this.y = -this.h;
+            this.y = -this.h;
         }
 
         //animtest
-        if (Date.now() % 200 <= 20) {
+        this.animTick+=this.xVelocity;
+        if(Math.floor(this.animTick) % 16 == 0){
             this.animFrame+=1;
         }
-        console.log(Date.now(),Date.now() % 200,this.animFrame)
+
+        //if (this.animName)
+        if (this.xVelocity != 0) {
+            this.animName="smallWalk";
+        }else{
+            this.animName="smallIdle";
+        }
         
     }
 
