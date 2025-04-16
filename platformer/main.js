@@ -233,10 +233,10 @@ const terminalVelocity = 8;
 let thePlayer = new Player(10, 20);
 let theTiles = [
     new Tile(0, 150, 0),
-    new Tile(16, 150, 0),
-    new Tile(32, 150, 0),
-    new Tile(48, 150, 0),
-    new Tile(64, 150, 0),
+    //new Tile(16, 150, 0),
+    //new Tile(32, 150, 0),
+    //new Tile(48, 150, 0),
+    //new Tile(64, 150, 0),
     new Tile(100, 120, 2)
 ];
 
