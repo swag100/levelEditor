@@ -1,15 +1,31 @@
 class Tile {
-    constructor(x,y,w,h,color='#000000') {
+    constructor(x,y,id=0) {
         this.x = x;
         this.y = y;
-        this.h = h;
-        this.w = w;
-        this.color=color;
+        this.w = 16;
+        this.h = 16;
+
+        this.id=id;
+
+        this.image = new Image();
+        this.image.src = 'tiles.png';
     }
 
     draw(ctx) {
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.w, this.h);
+        //ctx.fillStyle = this.color;
+        //ctx.fillRect(this.x, this.y, this.w, this.h);
+
+        //console.log(this.id % (this.image.naturalHeight / 16), this.id % (this.image.naturalWidth / 16))
+
+        ctx.drawImage(
+            this.image, 
+            (this.id % (this.image.naturalWidth / 16)) * this.w,
+            (this.id % (this.image.naturalHeight / 16)) * this.h,
+            this.w, this.h,
+            this.x, this.y, 
+            this.w, this.h
+        );
+
     }
 }
 
@@ -22,6 +38,7 @@ class Player {
         this.xVelocity = 0;
 
         this.direction=false;//false=right, true=left
+        this.animDirection=false;//Used for anims only... Fixes a bug!
         this.running=false;
 
         this.xCollided=false;
@@ -36,7 +53,7 @@ class Player {
             ],
 
             "smallIdle": [{"x":0,"y":0,"w":16,"h":16}],
-            "smallJump": [{"x":78,"y":0,"w":16,"h":16}],
+            "smallJump": [{"x":80,"y":0,"w":16,"h":16}],
             "smallSkid": [{"x":64,"y":0,"w":16,"h":16}],
             "smallWalk": [
                 {"x":16,"y":0,"w":16,"h":16},
@@ -52,11 +69,11 @@ class Player {
         this.h = 16;//these are to be removed after anims are done
         this.w = 16;
 
-        this.jumpHeight=3.2;
-        this.acceleration=0.08;
-        this.deceleration=0.16;
+        this.jumpHeight=3;
+        this.acceleration=0.07;
+        this.deceleration=0.1;
         this.walkSpeed=1;
-        this.runSpeed=3;
+        this.runSpeed=2;
 
     }
 
@@ -81,29 +98,46 @@ class Player {
         let directionValue= isKeyDown('KeyD') - isKeyDown('KeyA');
         let maxSpeed = this.running ? this.runSpeed : this.walkSpeed;
 
-        this.xVelocity += directionValue * this.acceleration;
-        if (Math.abs(this.xVelocity) >= maxSpeed){
-            this.xVelocity = maxSpeed*directionValue;
+        if(directionValue>0)this.direction=false;
+        if(directionValue<0)this.direction=true;
+
+        if (this.yCollided){
+            this.animDirection=this.direction;
         }
 
-        if(this.xVelocity>0)this.direction=false;
-        if(this.xVelocity<0)this.direction=true;
+        //accelerate
+        if(directionValue){
+            this.xVelocity += this.acceleration * directionValue;
+            if (Math.abs(this.xVelocity) >= maxSpeed){
+                this.xVelocity = maxSpeed*directionValue;
+            }
+        //decelerate
+        }else{
+            this.xVelocity += this.deceleration * ((this.direction * 2)-1);
+            
+            if ((this.xVelocity/Math.abs(this.xVelocity)) != -((this.direction * 2)-1)){
+                this.xVelocity = 0;
+            }
+
+        }
 
         this.x += this.xVelocity;
 
         //check for collision x
         this.xCollided=false;
         this.checkForCollisions(theTiles).forEach((tile) => {
-        if (this.xVelocity > 0) {
-            this.x = tile.x - this.w;
+            if (this.xVelocity > 0) {
+                this.x = tile.x - this.w;
+            } else {
+                this.x = tile.x + tile.w;
+            }
+
             this.xCollided=true;
-        } else {
-            this.x = tile.x + tile.w;
-        }
+            this.xVelocity=0;
         });
         
         // move 
-        this.yVelocity += gravity;
+        this.yVelocity += this.yVelocity >= 0 ? downgravity : gravity;
         if (this.yVelocity >= terminalVelocity){
         this.yVelocity=terminalVelocity;
         }
@@ -114,37 +148,53 @@ class Player {
         this.checkForCollisions(theTiles).forEach((tile) => {
             if (this.yVelocity > 0) {
                 this.y = tile.y - this.h;
-                this.yCollided=true;
             } else {
                 this.y = tile.y + tile.h;
             }
 
+            this.yCollided=true;
             this.yVelocity=0;
         });
 
+        console.log(this.yCollided);
+
         //jump
-        if (this.yCollided && isKeyDown('Space')) {
+        if (this.yCollided && isKeyDown('KeyW')) {
             this.yVelocity-=this.jumpHeight;
+            this.animName="smallJump";
+        }
+
+        if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -0.6) {
+            this.yVelocity=-0.6;
+
         }
 
         //player leaves screen, make them come back
         if (this.y >= 180)this.y = -this.h;
 
-        //animtest
-        this.animTick+=Math.abs(this.xVelocity);
-        if(Math.floor(this.animTick) % 16 == 0){
-            this.animFrame+=1;
-        }
-        if (this.xVelocity==0){
-            this.animFrame=0;
-        }
-        console.log(this.animTick);
-
-        //if (this.animName)
-        if (this.xVelocity != 0) {
+        //switch anims
+        if (this.yCollided&&!this.yVelocity){ //get out of jumping
             this.animName="smallWalk";
-        }else{
-            this.animName="smallIdle";
+        }
+
+        if (this.animName!="smallJump"){
+            if (this.xVelocity != 0) {
+                this.animName="smallWalk";
+            }else{
+                this.animName="smallIdle";
+            }
+            if (this.yCollided && directionValue && (this.xVelocity/Math.abs(this.xVelocity)) != directionValue){
+                this.animName="smallSkid";
+            }
+
+        }
+
+        //advance walk anim based off of speed
+        if (this.animName.includes('Walk')){
+            this.animTick+=this.xVelocity;
+            if(Math.floor(this.animTick / this.xVelocity) * this.xVelocity % 12 == 0){
+                this.animFrame+=1;
+            }
         }
         
     }
@@ -162,7 +212,7 @@ class Player {
             this.x, this.y, 
             this.animations[this.animName][modAnimFrame]['w'],
             this.animations[this.animName][modAnimFrame]['h'],
-            this.direction, false
+            this.animDirection, false
         );
     }
 }
@@ -176,13 +226,18 @@ ctx.imageSmoothingEnabled= false;
 let keysPressed = {};
 
 //game variables
-const gravity = 0.1;
-const terminalVelocity = 6;
+const gravity = 0.07;
+const downgravity = 0.2;
+const terminalVelocity = 8;
 
 let thePlayer = new Player(10, 20);
 let theTiles = [
-    new Tile(0, 150, 150, 20),
-    new Tile(100, 120, 100, 10),
+    new Tile(0, 150, 0),
+    new Tile(16, 150, 0),
+    new Tile(32, 150, 0),
+    new Tile(48, 150, 0),
+    new Tile(64, 150, 0),
+    new Tile(100, 120, 2)
 ];
 
 //functions
