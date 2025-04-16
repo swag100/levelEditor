@@ -1,7 +1,7 @@
 class Tile {
     constructor(x,y,id=0) {
-        this.x = x;
-        this.y = y;
+        this.x = x * 16;
+        this.y = y * 16;
         this.w = 16;
         this.h = 16;
 
@@ -18,7 +18,7 @@ class Tile {
         ctx.drawImage(
             this.image, 
             (this.id % (this.image.naturalWidth / 16)) * this.w,
-            (this.id % (this.image.naturalHeight / 16)) * this.h,
+            Math.floor((this.id < this.id+1 ? 9 : this.id) / (this.image.naturalHeight / 16)) * this.h,
             this.w, this.h,
             this.x, this.y, 
             this.w, this.h
@@ -45,6 +45,11 @@ class Player {
         this.image = new Image();
         this.image.src = 'mario.png';
 
+        this.sounds = {
+            "smallJump": new Audio('smallJump.wav'),
+            "largeJump": new Audio('largeJump.wav'),
+        };
+
         this.animations = {
             "die": [
                 {"x":0,"y":0,"w":16,"h":16}
@@ -64,11 +69,18 @@ class Player {
         this.animFrame = 0;
         this.animTick=0; // the thing we increment every update
 
-        this.h = 16;//these are to be removed after anims are done
-        this.w = 16;
+        this.w = 10;//hitbox size
+        this.h = 16;
+        this.hitboxOffsetX = 3;
+        this.hitboxOffsetY = 0;
 
-        this.jumpHeight=3;
-        this.acceleration=0.07;
+        this.jumpHeightMin=3;
+        this.jumpHeightMax=4;
+
+        this.jumpHeight = this.jumpHeightMin;
+
+        this.jumpPadding = 1.6;
+        this.acceleration=0.1;
         this.deceleration=0.1;
         this.walkSpeed=1;
         this.runSpeed=2;
@@ -77,11 +89,12 @@ class Player {
 
     checkForCollisions(theTiles) {
         let collisions = [];
+
         theTiles.forEach((tile) => {
-        if (this.x + this.w > tile.x && 
-            this.x < tile.x + tile.w && 
-            this.y + this.h > tile.y && 
-            this.y < tile.y + tile.h) 
+        if (this.x + this.hitboxOffsetX + this.w > tile.x && 
+            this.x + this.hitboxOffsetX < tile.x + tile.w && 
+            this.y + this.hitboxOffsetY + this.h > tile.y && 
+            this.y + this.hitboxOffsetY < tile.y + tile.h) 
         {
             collisions.push(tile);
         }
@@ -101,6 +114,12 @@ class Player {
 
         if (this.yCollided){
             this.animDirection=this.direction;
+        }
+
+        if (Math.abs(this.xVelocity) >= (this.runSpeed + this.walkSpeed) / 2){
+            this.jumpHeight = this.jumpHeightMax;
+        }else{
+            this.jumpHeight = this.jumpHeightMin;
         }
 
         //accelerate
@@ -125,9 +144,9 @@ class Player {
         this.xCollided=false;
         this.checkForCollisions(theTiles).forEach((tile) => {
             if (this.xVelocity >= 0) {
-                this.x = tile.x - this.w;
+                this.x = tile.x - (this.w + this.hitboxOffsetX);
             } else {
-                this.x = tile.x + tile.w;
+                this.x = tile.x + tile.w - this.hitboxOffsetX;
             }
 
             this.xCollided=true;
@@ -137,7 +156,7 @@ class Player {
         // move 
         this.yVelocity += this.yVelocity >= 0 ? downgravity : gravity;
         if (this.yVelocity >= terminalVelocity){
-        this.yVelocity=terminalVelocity;
+            this.yVelocity=terminalVelocity;
         }
         this.y += this.yVelocity;
 
@@ -154,16 +173,15 @@ class Player {
             this.yVelocity=0;
         });
 
-        console.log(this.yCollided);
-
         //jump
         if (this.yCollided && isKeyDown('KeyW')) {
+            //this.sounds["smallJump"].play();
             this.yVelocity-=this.jumpHeight;
             this.animName="smallJump";
         }
 
-        if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -0.6) {
-            this.yVelocity=-0.6;
+        if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -this.jumpPadding) {
+            this.yVelocity=-this.jumpPadding;
 
         }
 
@@ -181,7 +199,7 @@ class Player {
             }else{
                 this.animName="smallIdle";
             }
-            if (this.yCollided && directionValue && (this.xVelocity/Math.abs(this.xVelocity)) != directionValue){
+            if (!this.xCollided && this.yCollided && directionValue && (this.xVelocity/Math.abs(this.xVelocity)) != directionValue){
                 this.animName="smallSkid";
             }
 
@@ -199,7 +217,7 @@ class Player {
 
     draw(ctx) {
         //ctx.fillStyle = this.color;
-        //ctx.fillRect(this.x, this.y, this.w, this.h);
+        //ctx.fillRect(this.x + this.hitboxOffsetX, this.y, this.w, this.h);
 
         let modAnimFrame = this.animFrame % this.animations[this.animName].length;
         
@@ -224,18 +242,23 @@ ctx.imageSmoothingEnabled= false;
 let keysPressed = {};
 
 //game variables
-const gravity = 0.07;
-const downgravity = 0.2;
+const gravity = 0.12;
+const downgravity = 0.3;
 const terminalVelocity = 8;
 
 let thePlayer = new Player(10, 20);
 let theTiles = [
-    new Tile(0, 150, 0),
-    new Tile(16, 150, 0),
-    new Tile(32, 150, 0),
-    new Tile(48, 150, 0),
-    new Tile(64, 150, 0),
-    new Tile(100, 120, 1)
+    new Tile(0, 9, 0),
+    new Tile(1, 9, 0),
+    new Tile(2, 9, 0),
+    new Tile(3, 9, 0),
+    new Tile(4, 9, 0),
+    new Tile(5, 9, 7),
+    new Tile(6, 8, 8),
+    new Tile(7, 9, 9),
+    new Tile(8, 9, 10),
+    new Tile(9, 9, 11),
+    new Tile(10, 9, 12)
 ];
 
 //functions
@@ -252,10 +275,10 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    thePlayer.draw(ctx);
     theTiles.forEach(function(tile) {
         tile.draw(ctx);
     });
+    thePlayer.draw(ctx);
 }
 
 setInterval(main, 10);
@@ -271,7 +294,7 @@ function flipAndDrawImage(ctx, image, sx,sy, x,y, width, height, flipH, flipV) {
 }
 
 function isKeyDown(keyName) {
-    return (Object.keys(keysPressed).includes(keyName) && keysPressed[keyName])
+    return (Object.keys(keysPressed).includes(keyName) && keysPressed[keyName]);
 }
 
 addEventListener("keydown", function(event){
