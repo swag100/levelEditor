@@ -135,6 +135,9 @@ class Player {
         if(Math.floor(this.animTick) % 16 == 0){
             this.animFrame+=1;
         }
+        if (this.xVelocity==0){
+            this.animFrame=0;
+        }
         console.log(this.animTick);
 
         //if (this.animName)
@@ -164,12 +167,10 @@ class Player {
     }
 }
 
-let canvasScale= 2;
-
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-ctx.scale(canvasScale, canvasScale);
+ctx.scale(2, 2);
 ctx.imageSmoothingEnabled= false;
 
 let keysPressed = {};
