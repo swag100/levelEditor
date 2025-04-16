@@ -15,8 +15,6 @@ class Tile {
         //ctx.fillStyle = this.color;
         //ctx.fillRect(this.x, this.y, this.w, this.h);
 
-        //console.log(this.id % (this.image.naturalHeight / 16), this.id % (this.image.naturalWidth / 16))
-
         ctx.drawImage(
             this.image, 
             (this.id % (this.image.naturalWidth / 16)) * this.w,
@@ -126,7 +124,7 @@ class Player {
         //check for collision x
         this.xCollided=false;
         this.checkForCollisions(theTiles).forEach((tile) => {
-            if (this.xVelocity > 0) {
+            if (this.xVelocity >= 0) {
                 this.x = tile.x - this.w;
             } else {
                 this.x = tile.x + tile.w;
@@ -146,7 +144,7 @@ class Player {
         //check for collision y
         this.yCollided=false;
         this.checkForCollisions(theTiles).forEach((tile) => {
-            if (this.yVelocity > 0) {
+            if (this.yVelocity >= 0) {
                 this.y = tile.y - this.h;
             } else {
                 this.y = tile.y + tile.h;
@@ -233,11 +231,11 @@ const terminalVelocity = 8;
 let thePlayer = new Player(10, 20);
 let theTiles = [
     new Tile(0, 150, 0),
-    //new Tile(16, 150, 0),
-    //new Tile(32, 150, 0),
-    //new Tile(48, 150, 0),
-    //new Tile(64, 150, 0),
-    new Tile(100, 120, 2)
+    new Tile(16, 150, 0),
+    new Tile(32, 150, 0),
+    new Tile(48, 150, 0),
+    new Tile(64, 150, 0),
+    new Tile(100, 120, 1)
 ];
 
 //functions
