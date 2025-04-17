@@ -18,7 +18,7 @@ class Tile {
         ctx.drawImage(
             this.image, 
             (this.id % (this.image.naturalWidth / 16)) * this.w,
-            Math.floor((this.id < this.id+1 ? 9 : this.id) / (this.image.naturalHeight / 16)) * this.h,
+            Math.floor(this.id / ((this.image.naturalHeight / 16) - 1)) * this.h,
             this.w, this.h,
             this.x, this.y, 
             this.w, this.h
