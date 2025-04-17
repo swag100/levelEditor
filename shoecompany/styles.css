@@ -1,4 +1,17 @@
+*{
+    box-sizing: border-box;
+}
+body{
+    margin: 0;
+}
+
+/*element classes*/
+.header{
+    width: 100%;
+    background-color: gray;
+}
 .nav{
+    float: right;
     margin: 0;
     padding: 0;
 }
@@ -6,7 +19,18 @@
     float: left;
     list-style: none;
     padding: 1em;
+    padding-right: 2em;
 }
+
+/*util classes*/
 .clear{
     clear: both;
+}
+
+/*element ids*/
+#logo{
+    float: left;
+    padding: 0.25em;
+    padding-left: 2em;
+    width: 5em;
 }
