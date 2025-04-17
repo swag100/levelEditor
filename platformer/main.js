@@ -246,12 +246,16 @@ class Player {
 
         //advance walk anim based off of speed
         if (this.animName=='Walk'){
-            this.animTick+=this.xVelocity;
-            //console.log(this.xVelocity);
-            if(Math.floor(this.animTick / this.xVelocity) * this.xVelocity % 8 == 0){
+            this.animTick-=Math.abs(this.xVelocity);
+            
+            if(Math.floor(this.animTick) % 8 == 0){
                 this.animFrame+=1;
             }
+        }else{
+            this.animTick=0;
+            this.animFrame=0;
         }
+
     }
 
     draw(ctx) {
