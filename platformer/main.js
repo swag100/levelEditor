@@ -38,6 +38,7 @@ class Player {
         this.direction=false;//false=right, true=left
         this.animDirection=false;//Used for anims only... Fixes a bug!
         this.running=false;
+        this.crouch=false;
 
         this.xCollided=false;
         this.yCollided=true;
@@ -45,14 +46,9 @@ class Player {
         this.image = new Image();
         this.image.src = 'mario.png';
 
-        this.sounds = {
-            "smallJump": new Audio('smallJump.wav'),
-            "largeJump": new Audio('largeJump.wav'),
-        };
-
         this.animations = {
             "die": [
-                {"x":0,"y":0,"w":16,"h":16}
+                {"x":112,"y":0,"w":16,"h":16}
             ],
 
             "smallIdle": [{"x":0,"y":0,"w":16,"h":16}],
@@ -62,10 +58,22 @@ class Player {
                 {"x":16,"y":0,"w":16,"h":16},
                 {"x":32,"y":0,"w":16,"h":16},
                 {"x":48,"y":0,"w":16,"h":16}
+            ],
+
+            "largeCrouch": [{"x":96,"y":16,"w":16,"h":32}],
+            "largeIdle": [{"x":0,"y":16,"w":16,"h":32}],
+            "largeJump": [{"x":80,"y":16,"w":16,"h":32}],
+            "largeSkid": [{"x":64,"y":16,"w":16,"h":32}],
+            "largeWalk": [
+                {"x":16,"y":16,"w":16,"h":32},
+                {"x":32,"y":16,"w":16,"h":32},
+                {"x":48,"y":16,"w":16,"h":32}
             ]
         };
 
-        this.animName = "smallIdle";
+        this.power = "large";
+
+        this.animName = "Idle";
         this.animFrame = 0;
         this.animTick=0; // the thing we increment every update
 
@@ -74,7 +82,7 @@ class Player {
         this.hitboxOffsetX = 3;
         this.hitboxOffsetY = 0;
 
-        this.jumpHeightMin=3;
+        this.jumpHeightMin=3.3;
         this.jumpHeightMax=4;
 
         this.jumpHeight = this.jumpHeightMin;
@@ -86,6 +94,15 @@ class Player {
         this.runSpeed=2;
 
     }
+
+    keyDown(event){
+        //debug code - remove later!!
+        if(event.code=="Space"){
+            this.power = this.power=="large"?"small":"large";
+            this.y-= this.power=="large"?16:-16;
+        }
+    }
+    keyUp(event){}
 
     checkForCollisions(theTiles) {
         let collisions = [];
@@ -105,8 +122,9 @@ class Player {
     update(theTiles) {
         //move
         this.running = isKeyDown('ShiftLeft');
+        this.crouch = isKeyDown('KeyS') && this.power!="small";
 
-        let directionValue= isKeyDown('KeyD') - isKeyDown('KeyA');
+        let directionValue= (isKeyDown('KeyD') - isKeyDown('KeyA')) * !(this.yCollided && this.crouch);
         let maxSpeed = this.running ? this.runSpeed : this.walkSpeed;
 
         if(directionValue>0)this.direction=false;
@@ -116,10 +134,28 @@ class Player {
             this.animDirection=this.direction;
         }
 
-        if (Math.abs(this.xVelocity) >= (this.runSpeed + this.walkSpeed) / 2){
+        //make you jump higher when go fast
+        if (Math.abs(this.xVelocity) >= this.runSpeed){
             this.jumpHeight = this.jumpHeightMax;
         }else{
             this.jumpHeight = this.jumpHeightMin;
+        }
+
+        switch(this.power){
+            case "large":
+                this.h = 30;
+                this.hitboxOffsetY = 2;
+                if(this.crouch){
+                    this.h = 18;
+                    this.hitboxOffsetY = 14;
+                }
+                break;
+            default:
+                this.w = 10;//hitbox size
+                this.h = 16;
+                this.hitboxOffsetX = 3;
+                this.hitboxOffsetY = 0;
+                break;
         }
 
         //accelerate
@@ -164,9 +200,9 @@ class Player {
         this.yCollided=false;
         this.checkForCollisions(theTiles).forEach((tile) => {
             if (this.yVelocity >= 0) {
-                this.y = tile.y - this.h;
+                this.y = tile.y - (this.h + this.hitboxOffsetY);
             } else {
-                this.y = tile.y + tile.h;
+                this.y = tile.y + tile.h - this.hitboxOffsetY;
             }
 
             this.yCollided=true;
@@ -175,9 +211,9 @@ class Player {
 
         //jump
         if (this.yCollided && isKeyDown('KeyW')) {
-            //this.sounds["smallJump"].play();
+            playSound(this.power+"Jump.wav");
             this.yVelocity-=this.jumpHeight;
-            this.animName="smallJump";
+            this.animName="Jump";
         }
 
         if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -this.jumpPadding) {
@@ -190,44 +226,49 @@ class Player {
 
         //switch anims
         if (this.yCollided&&!this.yVelocity){ //get out of jumping
-            this.animName="smallWalk";
+            this.animName="Walk";
         }
 
-        if (this.animName!="smallJump"){
+        if (!this.animName.includes('Jump')){
             if (this.xVelocity != 0) {
-                this.animName="smallWalk";
+                this.animName="Walk";
             }else{
-                this.animName="smallIdle";
+                this.animName="Idle";
             }
             if (!this.xCollided && this.yCollided && directionValue && (this.xVelocity/Math.abs(this.xVelocity)) != directionValue){
-                this.animName="smallSkid";
+                this.animName="Skid";
+            }
+            if (this.crouch){
+                this.animName="Crouch";
             }
 
         }
 
         //advance walk anim based off of speed
-        if (this.animName.includes('Walk')){
+        if (this.animName=='Walk'){
             this.animTick+=this.xVelocity;
-            if(Math.floor(this.animTick / this.xVelocity) * this.xVelocity % 12 == 0){
+            //console.log(this.xVelocity);
+            if(Math.floor(this.animTick / this.xVelocity) * this.xVelocity % 8 == 0){
                 this.animFrame+=1;
             }
         }
-        
     }
 
     draw(ctx) {
         //ctx.fillStyle = this.color;
-        //ctx.fillRect(this.x + this.hitboxOffsetX, this.y, this.w, this.h);
+        //ctx.fillRect(this.x + this.hitboxOffsetX, this.y + this.hitboxOffsetY, this.w, this.h);
 
-        let modAnimFrame = this.animFrame % this.animations[this.animName].length;
+        let modAnimFrame = this.animFrame % this.animations[this.power+this.animName].length;
+
+        //console.log(this.power+this.animName);
         
         flipAndDrawImage(
             ctx, this.image, 
-            this.animations[this.animName][modAnimFrame]['x'],
-            this.animations[this.animName][modAnimFrame]['y'],
-            this.x, this.y, 
-            this.animations[this.animName][modAnimFrame]['w'],
-            this.animations[this.animName][modAnimFrame]['h'],
+            this.animations[this.power+this.animName][modAnimFrame]['x'],
+            this.animations[this.power+this.animName][modAnimFrame]['y'],
+            Math.floor(this.x), Math.floor(this.y), 
+            this.animations[this.power+this.animName][modAnimFrame]['w'],
+            this.animations[this.power+this.animName][modAnimFrame]['h'],
             this.animDirection, false
         );
     }
@@ -238,6 +279,8 @@ const ctx = canvas.getContext("2d");
 
 ctx.scale(2, 2);
 ctx.imageSmoothingEnabled= false;
+
+const soundPlayer = new Audio();
 
 let keysPressed = {};
 
@@ -285,6 +328,16 @@ setInterval(main, 10);
 
 //utils
 
+function playSound(soundURL) {
+    if (soundPlayer.src){
+        soundPlayer.pause();
+        soundPlayer.currentTime = 0;
+
+    }
+    soundPlayer.src = soundURL;
+    soundPlayer.play();
+}
+
 function flipAndDrawImage(ctx, image, sx,sy, x,y, width, height, flipH, flipV) {
     ctx.save();
     ctx.translate(flipH ? width : 0, flipV ? height : 0);
@@ -299,8 +352,12 @@ function isKeyDown(keyName) {
 
 addEventListener("keydown", function(event){
     keysPressed[event.code] = true;
+    
+    thePlayer.keyDown(event);
 });
 
 addEventListener("keyup", function(event){
     keysPressed[event.code] = false;
+    
+    thePlayer.keyUp(event);
 });
