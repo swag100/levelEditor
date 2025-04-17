@@ -1,10 +1,12 @@
-@font-face {
-    font-family: helvetica;
-    src: url(helvetica.ttf);
+.nav{
+    margin: 0;
+    padding: 0;
 }
-  
-#logo {
-    font-family: helvetica;
-    font-weight: bold;
-    font-size:3em;
+.nav li{
+    float: left;
+    list-style: none;
+    padding: 1em;
+}
+.clear{
+    clear: both;
 }
