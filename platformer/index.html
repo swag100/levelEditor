@@ -3,7 +3,17 @@
 <body>
     <a href="../index.html">return home</a>
     <h1 onclick="this.innerHTML = 'Ooops!'">Click on this text!</h1>
-    <canvas id="canvas" width="480"height="360" style="border:1px solid black"></canvas>
+    <canvas id="canvas" width="512"height="488" style="border:1px solid black"></canvas>
+
+    <button id="enterLevelEditorButton" onclick="toggleLevelEditor()">Enter Level Editor</button>
+    <div id="levelEditor" style="display: none;">
+        <img src="tiles.png">
+        <input type="number" id="idModal" name="idModal" placeholder="Tile id" style="width:80px" step="1" min="0">
+        
+        <!--WIP-->
+        <!--<button id="switchMode">Entity mode</button>-->
+    </div>
+
     <script src="main.js"></script>
 </body>
 </html>
