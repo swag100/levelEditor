@@ -20,7 +20,7 @@ class Tile {
             (this.id % (this.image.naturalWidth / 16)) * this.w,
             Math.round(this.id / (((this.image.naturalHeight - 1) / 16))) * this.h,
             this.w, this.h,
-            this.x, this.y, 
+            this.x - camX, this.y, 
             this.w, this.h
         );
 
@@ -112,10 +112,10 @@ class Entity {
     draw(ctx) {
         if (!Object.hasOwn(this, 'image'));{
             ctx.fillStyle = '#f00';
-            ctx.fillRect(Math.floor(this.x),Math.floor(this.y), 1, 1)
+            ctx.fillRect(Math.floor(this.x - camX),Math.floor(this.y), 1, 1)
             ctx.fillStyle = '#00f';
             ctx.fillRect(
-                Math.floor(this.x + this.hitboxOffsetX),
+                Math.floor(this.x - camX + this.hitboxOffsetX),
                 Math.floor(this.y + this.hitboxOffsetY),
                 this.w,
                 this.h
@@ -186,7 +186,7 @@ class Player extends Entity {
 
     keyDown(event){
         //debug code - remove later!!
-        if(event.code=="Space" && !debugMode){
+        if(event.code=="ControlLeft" && !debugMode){
             this.power = this.power=="large"?"small":"large";
             this.y-= this.power=="large"?16:-16;
         }
@@ -269,7 +269,36 @@ class Player extends Entity {
         this.x += this.xVelocity;
 
         this.collideX(theTiles);
-        
+
+        //cam
+        if(this.x <= camBoundsLeft){
+            this.x = camBoundsLeft;
+            this.xVelocity =0;
+            this.xCollided=true;
+        }
+        if(this.x + this.w + (this.hitboxOffsetX * 2) >= camBoundsRight + 256){
+            this.x = camBoundsRight + 256 - this.w - (this.hitboxOffsetX * 2);
+            this.xVelocity =0;
+            this.xCollided=true;
+        }
+
+        if (this.x > camX+camPaddingRight && camX < camBoundsRight){
+            camX += this.xVelocity;
+            if (this.x > camX+camPaddingRight){
+                camX +=1;
+            }
+        }
+        if (this.x < camX+camPaddingLeft && camX > camBoundsLeft){
+            camX += this.xVelocity;
+            if (this.x < camX+camPaddingLeft){
+                camX -=1;
+            }
+        }
+        // TODO: Reaching end of stage causes camera to 'stick'.
+        // Make sure that doesn't happen, and also ensure player never leaves screen
+        // Weirdly, when camx == camboundsright at 0, 0: it's fine.
+        // But when camx == camboundsright at the end of the level, it gets stuck!
+
         // move 
         this.yVelocity += this.yVelocity >= 0 ? downgravity : gravity;
         if (this.yVelocity >= terminalVelocity){
@@ -307,15 +336,15 @@ class Player extends Entity {
         }
 
         //advance walk anim based off of speed
-        let oldAnimFrame = this.animFrame;
+        let oldAnimFrame = this.animFrame%this.animations[this.power+this.animName].length;
         if (this.animName=='Walk'&&!this.yVelocity){
             this.animTick-=(Math.ceil(Math.abs(this.xVelocity)) / 2) * 2;
             
-            if(Math.floor(this.animTick) % 6 == 0){
+            if(Math.floor(this.animTick) % 8 == 0){
                 this.animFrame+=1;
             }
         }
-        if (oldAnimFrame==this.animFrame){
+        if (oldAnimFrame==this.animFrame%this.animations[this.power+this.animName].length){
             this.sameFrameCount+=1
         }else{
             this.sameFrameCount=0;
@@ -338,7 +367,7 @@ class Player extends Entity {
             ctx, this.image, 
             this.animations[this.power+this.animName][modAnimFrame]['x'],
             this.animations[this.power+this.animName][modAnimFrame]['y'],
-            Math.floor(this.x), Math.floor(this.y), 
+            Math.floor(this.x - Math.floor(camX)), Math.floor(this.y), 
             this.animations[this.power+this.animName][modAnimFrame]['w'],
             this.animations[this.power+this.animName][modAnimFrame]['h'],
             this.animDirection, false
@@ -354,13 +383,14 @@ ctx.imageSmoothingEnabled= false;
 
 const soundPlayer = new Audio();
 
+//debug
+const idModal = document.getElementById('idModal');
 let debugMode = false;
 let isEntityBeingHovered = false;
 let hoveredEntity = null;
 let selectedEntity = null;
 let cuteSelectionOffset = [0,0];//cute
 
-const idModal = document.getElementById('idModal');
 let mouseLocation = [0,0];
 let mouseButtonsPressed = {};
 let keysPressed = {};
@@ -376,6 +406,13 @@ let defaultLevelData = {
     '0,15':0,'1,15':0,'2,15':0,'3,15':0,'4,15':0
 }
 let level = defaultLevelData;
+
+//cam
+let camX = 0;
+let camPaddingLeft = 32; 
+let camPaddingRight = 144;
+let camBoundsLeft = 0;
+let camBoundsRight = 0; //length of level
 
 //let thePlayer = new Player(10, 20);
 let theEntities = [];
@@ -403,7 +440,7 @@ function update() {
             if (mouseLocation[1] > 0 && mouseLocation[1] < 244){
                 if (!selectedEntity){
                     const key = (
-                        Math.floor(mouseLocation[0] / 16)+','+
+                        Math.floor((mouseLocation[0]+Math.floor(camX)) / 16)+','+
                         Math.floor((mouseLocation[1] + 8) / 16)
                     );
 
@@ -421,14 +458,26 @@ function update() {
                 }
             }
         }
-        //
 
-        return;
+        //cam control
+        if(isKeyDown('KeyD'))camX+=2;
+        if(isKeyDown('KeyA'))camX-=2;
+        
+    }else{
+        for (const entity of theEntities){
+            entity.update(theTiles);
+        }
     }
     
-    for (const entity of theEntities){
-        entity.update(theTiles);
+    //limit cam
+    if (camX <= camBoundsLeft){
+        camX = camBoundsLeft;
     }
+    if (camX>=camBoundsRight){
+        camX = camBoundsRight;
+    }
+
+    //console.log(camX, camBoundsRight);
 }
 
 function draw() {
@@ -452,7 +501,9 @@ function draw() {
         canvas.style.cursor = 'pointer';
     
         for (const entity of theEntities){
-            isEntityBeingHovered = pointInRect(mouseLocation, entity);
+            let camMouseLocation = [mouseLocation[0]+Math.floor(camX),mouseLocation[1]];
+
+            isEntityBeingHovered = pointInRect(camMouseLocation, entity);
             if (isEntityBeingHovered){
                 hoveredEntity = entity;
                 break;
@@ -461,7 +512,7 @@ function draw() {
 
         if (selectedEntity){
             ctx.fillRect(
-                Math.floor(selectedEntity.x + selectedEntity.hitboxOffsetX), 
+                Math.floor(selectedEntity.x + selectedEntity.hitboxOffsetX - Math.floor(camX)), 
                 Math.floor(selectedEntity.y + selectedEntity.hitboxOffsetY), 
                 selectedEntity.w,
                 selectedEntity.h
@@ -469,7 +520,7 @@ function draw() {
         } else{
             if (isEntityBeingHovered){
                 ctx.fillRect(
-                    Math.floor(hoveredEntity.x + hoveredEntity.hitboxOffsetX), 
+                    Math.floor(hoveredEntity.x + hoveredEntity.hitboxOffsetX - Math.floor(camX)), 
                     Math.floor(hoveredEntity.y + hoveredEntity.hitboxOffsetY), 
                     hoveredEntity.w,
                     hoveredEntity.h
@@ -477,13 +528,13 @@ function draw() {
             }else {
                 let image = new Image();
                 image.src = 'tiles.png';
-
+                
                 ctx.drawImage(
                     image, 
                     (idModal.value % (image.naturalWidth / 16)) * 16,
                     Math.round(idModal.value / (((image.naturalHeight - 1) / 16))) * 16,
                     16,16,
-                    Math.floor(mouseLocation[0] / 16) * 16, 
+                    (Math.floor((mouseLocation[0]+(camX%256)) / 16) * 16)-(camX%256), 
                     (Math.floor((mouseLocation[1] - 8) / 16) * 16) + 8, 
                     16,16
                 );
@@ -595,6 +646,12 @@ function toggleLevelEditor(){
     le.style.display = debugMode ? 'block' : 'none';
 }
 
+function updateLevelLength(element){
+    document.getElementById('lengthOutput').innerHTML = element.value+'px'; 
+    camBoundsRight = document.getElementById('lengthModal').value; 
+    //console.log(camBoundsRight);
+}
+
 addEventListener("mousedown", (event) => {
     mouseButtonsPressed[event.button] = true;
 
@@ -622,10 +679,6 @@ addEventListener('contextmenu', (event) => {
     }
 });
 
-addEventListener("scroll", (event) => {
-    console.log(event);
-});
-
 //io
 const fileInput = document.getElementById('importLevelButton');
 fileInput.addEventListener('change', importLevel);
@@ -637,9 +690,18 @@ function importLevel(event){
       
         reader.onload = function(event) {
             let data = JSON.parse(event.target.result);
+
             level = data['tileData'];
-            document.getElementById('levelTitle').value = data['levelTitle'];
             updateTilesList(level);
+
+            document.getElementById('levelTitle').value = data['levelTitle'];
+
+            document.getElementById('lengthOutput').value = data['levelLength'];
+            document.getElementById('lengthModal').value = data['levelLength'];
+            camBoundsRight = data['levelLength'];
+
+            camX =data['cameraData'];
+            
 
             let newLevelEntities = [];
             for (const obj of data['entityData']){
@@ -649,7 +711,7 @@ function importLevel(event){
                 //wont pass x any y into constructor
             }
             theEntities = newLevelEntities;
-            console.log(theEntities)
+            //console.log(theEntities)
         };
 
         reader.readAsText(file);
@@ -659,6 +721,8 @@ function importLevel(event){
 function exportLevel(){
     let data = {
         'levelTitle': document.getElementById('levelTitle').value,
+        'levelLength': document.getElementById('lengthModal').value,
+        'cameraData': camX,
         'tileData': level,
         'entityData': jsonReadyEntityData(theEntities)
     }
