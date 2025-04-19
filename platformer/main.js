@@ -18,7 +18,7 @@ class Tile {
         ctx.drawImage(
             this.image, 
             (this.id % (this.image.naturalWidth / 16)) * this.w,
-            Math.floor(this.id / ((this.image.naturalHeight / 16) - 2)) * this.h,
+            Math.round(this.id / (((this.image.naturalHeight - 1) / 16))) * this.h,
             this.w, this.h,
             this.x, this.y, 
             this.w, this.h
@@ -167,12 +167,14 @@ class Player extends Entity {
         this.animFrame = 0;
         this.animTick=0; // the thing we increment every update
 
+        this.sameFrameCount=0; // I hate this dumb bug, but I love being lazy
+
         this.jumpHeightMin=4.1;
         this.jumpHeightMax=4.5;
 
         this.jumpHeight = this.jumpHeightMin;
 
-        this.jumpPadding = 1.6;
+        this.jumpPadding = 1;
         this.acceleration=0.1;
         this.deceleration=0.1;
         this.walkSpeed=1;
@@ -305,15 +307,21 @@ class Player extends Entity {
         }
 
         //advance walk anim based off of speed
-        if (this.animName=='Walk'){
+        let oldAnimFrame = this.animFrame;
+        if (this.animName=='Walk'&&!this.yVelocity){
             this.animTick-=(Math.ceil(Math.abs(this.xVelocity)) / 2) * 2;
             
-            if(Math.floor(this.animTick) % 8 == 0){
+            if(Math.floor(this.animTick) % 6 == 0){
                 this.animFrame+=1;
             }
+        }
+        if (oldAnimFrame==this.animFrame){
+            this.sameFrameCount+=1
         }else{
-            this.animTick=0;
-            this.animFrame=0;
+            this.sameFrameCount=0;
+        }
+        if (this.running&&this.sameFrameCount>8){
+            this.animTick+=1;
         }
 
     }
@@ -363,10 +371,11 @@ const downgravity = 0.3;
 const terminalVelocity = 8;
 
 //level data
-let level = {
+let defaultLevelData = {
     '0,14':0,'1,14':0,'2,14':0,'3,14':0,'4,14':0,
     '0,15':0,'1,15':0,'2,15':0,'3,15':0,'4,15':0
-};
+}
+let level = defaultLevelData;
 
 //let thePlayer = new Player(10, 20);
 let theEntities = [];
@@ -466,7 +475,14 @@ function draw() {
                     hoveredEntity.h
                 );
             }else {
-                ctx.fillRect(
+                let image = new Image();
+                image.src = 'tiles.png';
+
+                ctx.drawImage(
+                    image, 
+                    (idModal.value % (image.naturalWidth / 16)) * 16,
+                    Math.round(idModal.value / (((image.naturalHeight - 1) / 16))) * 16,
+                    16,16,
                     Math.floor(mouseLocation[0] / 16) * 16, 
                     (Math.floor((mouseLocation[1] - 8) / 16) * 16) + 8, 
                     16,16
@@ -530,6 +546,33 @@ function pointInRect(p,rect){
     );
 }
 
+//i stole this. https://stackoverflow.com/questions/13405129/
+function download(data, filename, type) {
+    var file = new Blob([data], {type: type});
+    if (window.navigator.msSaveOrOpenBlob) // IE10+
+        window.navigator.msSaveOrOpenBlob(file, filename);
+    else { // Others
+        var a = document.createElement("a"),
+                url = URL.createObjectURL(file);
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);  
+        }, 0); 
+    }
+}
+
+function jsonReadyEntityData(theEntities){
+    let returnVal = [];
+    for (const obj of theEntities){
+        returnVal.push({'class': obj.constructor.name,'x':Math.floor(obj.x),'y':obj.y});
+    }
+    return returnVal;
+}
+
 //level editor
 function updateTilesList(tileData){
     theTiles = [];
@@ -573,8 +616,56 @@ addEventListener("mouseup", (event) => {
     }
 });
 
-document.addEventListener('contextmenu', (event) => {
+addEventListener('contextmenu', (event) => {
     if (debugMode){
         event.preventDefault();
     }
 });
+
+addEventListener("scroll", (event) => {
+    console.log(event);
+});
+
+//io
+const fileInput = document.getElementById('importLevelButton');
+fileInput.addEventListener('change', importLevel);
+
+function importLevel(event){
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+      
+        reader.onload = function(event) {
+            let data = JSON.parse(event.target.result);
+            level = data['tileData'];
+            document.getElementById('levelTitle').value = data['levelTitle'];
+            updateTilesList(level);
+
+            let newLevelEntities = [];
+            for (const obj of data['entityData']){
+                newLevelEntities.push(
+                    eval(`new ${obj['class']}(${obj['x']},${obj['y']})`)
+                );
+                //wont pass x any y into constructor
+            }
+            theEntities = newLevelEntities;
+            console.log(theEntities)
+        };
+
+        reader.readAsText(file);
+    }
+}
+
+function exportLevel(){
+    let data = {
+        'levelTitle': document.getElementById('levelTitle').value,
+        'tileData': level,
+        'entityData': jsonReadyEntityData(theEntities)
+    }
+
+    download(
+        JSON.stringify(data), 
+        data['levelTitle'] || 'untitled', 
+        'application/json'
+    );
+}

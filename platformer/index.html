@@ -1,18 +1,36 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <link rel="stylesheet" href="styles.css">
+</head>
 <body>
-    <a href="../index.html">return home</a>
     <h1 onclick="this.innerHTML = 'Ooops!'">Click on this text!</h1>
-    <canvas id="canvas" width="512"height="488" style="border:1px solid black"></canvas>
-
-    <button id="enterLevelEditorButton" onclick="toggleLevelEditor()">Enter Level Editor</button>
-    <div id="levelEditor" style="display: none;">
-        <img src="tiles.png">
-        <input type="number" id="idModal" name="idModal" placeholder="Tile id" style="width:80px" step="1" min="0">
-        
-        <!--WIP-->
-        <!--<button id="switchMode">Entity mode</button>-->
+    <div class="content">
+        <canvas id="canvas" width="512"height="488" style="border:1px solid black;"></canvas>
+        <a href="../index.html">return home</a>
     </div>
+    <div class="sidebar">
+        <input id="levelTitle" type="text" placeholder="Level title">
+        <button id="exportLevelButton" onclick="exportLevel()">Export Level</button>
+        <hr>
+        <p>Load a level</p>
+        <input type="file" id="importLevelButton">
+        <hr>
+        <button id="enterLevelEditorButton" onclick="toggleLevelEditor()">Enter Level Editor</button>
+
+        <div id="levelEditor" style="display: none;">
+            <ul id="instructions">
+                <li>Right click to delete</li>
+            </ul>
+            <select name="idModal" id="idModal">
+                <option value="0">Ground</option>
+                <option value="1">Hard Block</option>
+                <option value="6">Brick Block</option>
+                <option value="3">? Block</option>
+            </select>
+        </div>
+    </div>
+    <div class="clear"></div>
 
     <script src="main.js"></script>
 </body>
