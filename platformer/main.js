@@ -178,7 +178,7 @@ class Player extends Entity {
         this.acceleration=0.1;
         this.deceleration=0.1;
         this.walkSpeed=1;
-        this.runSpeed=2;
+        this.runSpeed=3;
 
         this.absVelocity=0;
 
@@ -343,7 +343,7 @@ class Player extends Entity {
         if (this.animName=='Walk'&&!this.yVelocity){
             this.animTick-=(Math.ceil(Math.abs(this.xVelocity)) / 2) * 2;
             
-            if(Math.floor(this.animTick) % 8 == 0){
+            if(Math.floor(this.animTick) % 9 == 0){
                 this.animFrame+=1;
             }
         }
@@ -352,7 +352,7 @@ class Player extends Entity {
         }else{
             this.sameFrameCount=0;
         }
-        if (this.running&&this.sameFrameCount>8){
+        if (this.running&&this.sameFrameCount>9){
             this.animTick+=1;
         }
 
