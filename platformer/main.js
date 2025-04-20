@@ -20,7 +20,7 @@ class Tile {
             (this.id % (this.image.naturalWidth / 16)) * this.w,
             Math.round(this.id / (((this.image.naturalHeight - 1) / 16))) * this.h,
             this.w, this.h,
-            this.x - camX, this.y, 
+            Math.floor(this.x - camX), this.y, 
             this.w, this.h
         );
 
@@ -415,7 +415,7 @@ let camX = 0;
 let camPaddingLeft = 32; 
 let camPaddingRight = 144;
 let camBoundsLeft = 0;
-let camBoundsRight = document.getElementById('lengthModal').value; //length of level
+let camBoundsRight = 0; //length of level
 
 //let thePlayer = new Player(10, 20);
 let theEntities = [];
@@ -536,7 +536,7 @@ function draw() {
                     (idModal.value % (image.naturalWidth / 16)) * 16,
                     Math.round(idModal.value / (((image.naturalHeight - 1) / 16))) * 16,
                     16,16,
-                    (Math.floor((mouseLocation[0]+(camX%256)) / 16) * 16)-(camX%256), 
+                    Math.floor((Math.floor((mouseLocation[0]+(camX%256)) / 16) * 16)-(camX%256)), 
                     (Math.floor((mouseLocation[1] - 8) / 16) * 16) + 8, 
                     16,16
                 );
@@ -629,8 +629,9 @@ function download(data, filename, type) {
 
 function jsonReadyEntityData(theEntities){
     let returnVal = [];
-    for (const obj of theEntities){
-        returnVal.push({'class': obj.constructor.name,'x':Math.floor(obj.x),'y':obj.y});
+    for (let obj of theEntities){
+        obj['class'] = obj.constructor.name
+        returnVal.push(obj);
     }
     return returnVal;
 }
@@ -717,7 +718,7 @@ function importLevel(event){
 
             document.getElementById('levelTitle').value = data['levelTitle'];
 
-            document.getElementById('lengthOutput').value = data['levelLength'];
+            document.getElementById('lengthOutput').innerHTML = data['levelLength']+'px';
             document.getElementById('lengthModal').value = data['levelLength'];
             camBoundsRight = Number(data['levelLength']);
 

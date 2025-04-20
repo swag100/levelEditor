@@ -15,8 +15,8 @@ p,input,button,select,fieldset,hr{
 }
 ul{
     margin:5px;
-    padding-left: 8px;
-    list-style-type:none;
+    padding-left: 5px;
+    list-style-type:'- ';
 }
 fieldset{
     padding: 5px;
@@ -24,6 +24,7 @@ fieldset{
 input[type="range"] {
     width:90px;
     float: right;
+    margin-left: 5px;
 }
 .content{
     width: 514px;
@@ -43,4 +44,14 @@ input[type="range"] {
     padding-left:2px;
     padding-right:2px;
     background: #fff;
+}
+#instructions ul li{
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+#instructions ul li:last-child{
+    margin-bottom: 0;
+}
+#lengthOutput{
+    margin-left: 10px;
 }
