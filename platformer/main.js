@@ -245,7 +245,7 @@ class Player extends Entity {
         }else{
             this.absVelocity = 0;
         }
-        if (!this.running){
+        if (!this.xVelocity){
             this.absVelocity = 0;
         }
         if (this.absVelocity >= (this.walkSpeed+this.runSpeed)/2){
