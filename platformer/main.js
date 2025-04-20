@@ -271,6 +271,7 @@ class Player extends Entity {
         this.collideX(theTiles);
 
         //cam
+        //This was a complete nightmare. 
         if(this.x <= camBoundsLeft){
             this.x = camBoundsLeft;
             this.xVelocity =0;
@@ -281,7 +282,6 @@ class Player extends Entity {
             this.xVelocity =0;
             this.xCollided=true;
         }
-
         if (this.x > camX+camPaddingRight && camX < camBoundsRight){
             camX += this.xVelocity;
             if (this.x > camX+camPaddingRight){
@@ -294,10 +294,6 @@ class Player extends Entity {
                 camX -=1;
             }
         }
-        // TODO: Reaching end of stage causes camera to 'stick'.
-        // Make sure that doesn't happen, and also ensure player never leaves screen
-        // Weirdly, when camx == camboundsright at 0, 0: it's fine.
-        // But when camx == camboundsright at the end of the level, it gets stuck!
 
         // move 
         this.yVelocity += this.yVelocity >= 0 ? downgravity : gravity;
@@ -476,8 +472,6 @@ function update() {
     if (camX>=camBoundsRight){
         camX = camBoundsRight;
     }
-
-    //console.log(camX, camBoundsRight);
 }
 
 function draw() {
@@ -698,9 +692,9 @@ function importLevel(event){
 
             document.getElementById('lengthOutput').value = data['levelLength'];
             document.getElementById('lengthModal').value = data['levelLength'];
-            camBoundsRight = data['levelLength'];
+            camBoundsRight = Number(data['levelLength']);
 
-            camX =data['cameraData'];
+            camX =Number(data['cameraData']);
             
 
             let newLevelEntities = [];
