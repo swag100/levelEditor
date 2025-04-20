@@ -25,7 +25,8 @@
                     <li>Left click to create</li>
                     <li>Right click to delete</li>
                     <li>Click and drag to move entities</li>
-                    <li>A and D to shift camera</li>
+                    <li>A and D to move camera</li>
+                    <li>Hold shift to move camera faster</li>
                 </ul>
             </fieldset>
             <fieldset>
@@ -41,11 +42,12 @@
                 <legend>Level length</legend>
                 <label id="lengthOutput" for="lengthModal">0px</label>
                 <input 
+                    autocomplete="off"
                     type="range" 
                     name="lengthModal" 
                     id="lengthModal" 
                     value="0" 
-                    max="512" 
+                    max="1024" 
                     min="0" 
                     oninput="updateLevelLength(this)"
                 >

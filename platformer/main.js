@@ -185,17 +185,39 @@ class Player extends Entity {
     }
 
     keyDown(event){
-        //debug code - remove later!!
-        if(event.code=="ControlLeft" && !debugMode){
-            this.power = this.power=="large"?"small":"large";
-            this.y-= this.power=="large"?16:-16;
+        if(debugMode){
+            //debug code - remove later!!
+            if(event.code=="ControlLeft" && debugMode){
+                this.power = this.power=="large"?"small":"large";
+                this.y-= this.power=="large"?16:-16;
+                this.updateHitbox();
+            }
+        }else{
+            //jump
+            if (event.code=="KeyW" && !debugMode && this.onGround) {
+                playSound(this.power+"Jump.wav");
+                this.yVelocity-=this.jumpHeight;
+                this.animName="Jump";
+            }
         }
+    }
 
-        //jump
-        if (event.code=="KeyW" && !debugMode && this.onGround) {
-            playSound(this.power+"Jump.wav");
-            this.yVelocity-=this.jumpHeight;
-            this.animName="Jump";
+    updateHitbox(){
+        switch(this.power){
+            case "large":
+                this.h = 30;
+                this.hitboxOffsetY = 2;
+                if(this.crouch){
+                    this.h = 14;
+                    this.hitboxOffsetY = 18;
+                }
+                break;
+            default:
+                this.w = 10;//hitbox size
+                this.h = 16;
+                this.hitboxOffsetX = 3;
+                this.hitboxOffsetY = 0;
+                break;
         }
     }
 
@@ -233,22 +255,7 @@ class Player extends Entity {
         }
 
         //handle powerups
-        switch(this.power){
-            case "large":
-                this.h = 30;
-                this.hitboxOffsetY = 2;
-                if(this.crouch){
-                    this.h = 14;
-                    this.hitboxOffsetY = 18;
-                }
-                break;
-            default:
-                this.w = 10;//hitbox size
-                this.h = 16;
-                this.hitboxOffsetX = 3;
-                this.hitboxOffsetY = 0;
-                break;
-        }
+        this.updateHitbox();
 
         //accelerate
         if(directionValue){
@@ -400,7 +407,7 @@ const terminalVelocity = 8;
 let defaultLevelData = {
     '0,14':0,'1,14':0,'2,14':0,'3,14':0,'4,14':0,
     '0,15':0,'1,15':0,'2,15':0,'3,15':0,'4,15':0
-}
+};
 let level = defaultLevelData;
 
 //cam
@@ -408,7 +415,7 @@ let camX = 0;
 let camPaddingLeft = 32; 
 let camPaddingRight = 144;
 let camBoundsLeft = 0;
-let camBoundsRight = 0; //length of level
+let camBoundsRight = document.getElementById('lengthModal').value; //length of level
 
 //let thePlayer = new Player(10, 20);
 let theEntities = [];
@@ -456,8 +463,13 @@ function update() {
         }
 
         //cam control
-        if(isKeyDown('KeyD'))camX+=2;
-        if(isKeyDown('KeyA'))camX-=2;
+        if (isKeyDown('ShiftLeft')){
+            if(isKeyDown('KeyD'))camX+=6;
+            if(isKeyDown('KeyA'))camX-=6;
+        }else{
+            if(isKeyDown('KeyD'))camX+=3;
+            if(isKeyDown('KeyA'))camX-=3;
+        }
         
     }else{
         for (const entity of theEntities){
@@ -642,7 +654,8 @@ function toggleLevelEditor(){
 
 function updateLevelLength(element){
     document.getElementById('lengthOutput').innerHTML = element.value+'px'; 
-    camBoundsRight = document.getElementById('lengthModal').value; 
+    camBoundsRight = Number(document.getElementById('lengthModal').value); 
+    //Value of this is a string, and is why MY CAM CODE HASNT BEEN WORKING
     //console.log(camBoundsRight);
 }
 
