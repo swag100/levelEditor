@@ -9,6 +9,8 @@ class Tile {
 
         this.image = new Image();
         this.image.src = 'tiles.png';
+        this.sliceX = (this.id % (this.image.naturalWidth / 16)) * this.w;
+        this.sliceY = Math.round(this.id / (((this.image.naturalHeight - 1) / 16))) * this.h;
     }
 
     draw(ctx) {
@@ -17,8 +19,7 @@ class Tile {
 
         ctx.drawImage(
             this.image, 
-            (this.id % (this.image.naturalWidth / 16)) * this.w,
-            Math.round(this.id / (((this.image.naturalHeight - 1) / 16))) * this.h,
+            this.sliceX, this.sliceY,
             this.w, this.h,
             Math.floor(this.x - camX), this.y, 
             this.w, this.h
@@ -175,7 +176,7 @@ class Player extends Entity {
         this.jumpHeight = this.jumpHeightMin;
 
         this.jumpPadding = 1;
-        this.acceleration=0.07;
+        this.acceleration=0.1;
         this.deceleration=0.1;
         this.walkSpeed=1;
         this.runSpeed=3;
@@ -259,7 +260,7 @@ class Player extends Entity {
 
         //accelerate
         if(directionValue){
-            this.xVelocity += directionValue * (this.animName=="Skid"?this.deceleration:this.acceleration);
+            this.xVelocity += directionValue * this.acceleration;
             if (Math.abs(this.xVelocity) >= maxSpeed){
                 this.xVelocity = maxSpeed*directionValue;
             }
@@ -433,7 +434,7 @@ function main() {
 
 function update() {
     if (debugMode){ //dont update any entities, so they can be dragged
-        if (selectedEntity){
+        if (selectedEntity && mouseInBounds()){
             selectedEntity.x = mouseLocation[0] + cuteSelectionOffset[0];
             selectedEntity.y = mouseLocation[1] + cuteSelectionOffset[1];   
         }
@@ -644,6 +645,7 @@ function updateTilesList(tileData){
             let xy = locationString.split(',');
             
             theTiles.push(new Tile(xy[0], xy[1], tileData[locationString]));
+            // this is where youd make a new class, eg. BrickBlock
         }
     }
 }
