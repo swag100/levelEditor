@@ -658,8 +658,8 @@ function toggleLevelEditor(){
     le.style.display = debugMode ? 'block' : 'none';
 }
 
-function toggleInstructions(link){
-    let instructions = document.getElementById('instructions');
+function hideShow(link){
+    let instructions = link.parentElement;
     let instructionsList = instructions.lastElementChild;
     let value = instructionsList.style.display=='none'
     instructionsList.style.display = value?'block':'none';
