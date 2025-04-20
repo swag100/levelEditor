@@ -657,6 +657,15 @@ function toggleLevelEditor(){
     le.style.display = debugMode ? 'block' : 'none';
 }
 
+function toggleInstructions(link){
+    let instructions = document.getElementById('instructions');
+    let instructionsList = instructions.lastElementChild;
+    let value = instructionsList.style.display=='none'
+    instructionsList.style.display = value?'block':'none';
+    instructions.style.height=value?'auto':'0';
+    link.innerHTML=value?'hide':'show';
+}
+
 function updateLevelLength(element){
     document.getElementById('lengthOutput').innerHTML = element.value+'px'; 
     camBoundsRight = Number(document.getElementById('lengthModal').value); 

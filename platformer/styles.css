@@ -36,3 +36,11 @@ input[type="range"] {
 .clear{
     clear: both;
 }
+.legend{
+    position: relative;
+    float: right;
+    top: -1.5em;
+    padding-left:2px;
+    padding-right:2px;
+    background: #fff;
+}

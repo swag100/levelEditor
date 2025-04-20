@@ -20,8 +20,9 @@
         <button id="enterLevelEditorButton" onclick="toggleLevelEditor()">Enter Level Editor</button>
 
         <div id="levelEditor" style="display: none;">
-            <fieldset>
+            <fieldset id="instructions">
                 <legend>Instructions</legend>
+                <a href="javascript:void(0);" class="legend" onclick="toggleInstructions(this)">hide</a>
                 <ul>
                     <li>Left click to create</li>
                     <li>Right click to delete</li>
