@@ -438,27 +438,23 @@ function update() {
             selectedEntity.y = mouseLocation[1] + cuteSelectionOffset[1];   
         }
 
-        //Forgive me.
-        if (mouseLocation[0] > 0 && mouseLocation[0] < 256){
-            if (mouseLocation[1] > 0 && mouseLocation[1] < 244){
-                if (!selectedEntity){
-                    const key = (
-                        Math.floor((mouseLocation[0]+Math.floor(camX)) / 16)+','+
-                        Math.floor((mouseLocation[1] + 8) / 16)
-                    );
+        //No forgiveness needed.
+        if (!selectedEntity && mouseInBounds()){
+            const key = (
+                Math.floor((mouseLocation[0]+Math.floor(camX)) / 16)+','+
+                Math.floor((mouseLocation[1] + 8) / 16)
+            );
 
-                    if (isMouseButtonDown(0)){
-                        if (level[key] != idModal.value){
-                            level[key] = idModal.value || 0;
-                            updateTilesList(level);
-                        }
-                    }
-                    
-                    if (isMouseButtonDown(2)){
-                        delete level[key];
-                        updateTilesList(level);
-                    }
+            if (isMouseButtonDown(0)){
+                if (level[key] != idModal.value){
+                    level[key] = idModal.value || 0;
+                    updateTilesList(level);
                 }
+            }
+            
+            if (isMouseButtonDown(2)){
+                delete level[key];
+                updateTilesList(level);
             }
         }
 
@@ -603,6 +599,15 @@ function pointInRect(p,rect){
     );
 }
 
+function mouseInBounds(){
+    return (
+        mouseLocation[0] > 0 && 
+        mouseLocation[0] < 256 &&
+        mouseLocation[1] > 0 && 
+        mouseLocation[1] < 244
+    );
+}
+
 //i stole this. https://stackoverflow.com/questions/13405129/
 function download(data, filename, type) {
     var file = new Blob([data], {type: type});
@@ -681,7 +686,7 @@ addEventListener("mouseup", (event) => {
 });
 
 addEventListener('contextmenu', (event) => {
-    if (debugMode){
+    if (debugMode &&mouseInBounds()){
         event.preventDefault();
     }
 });
