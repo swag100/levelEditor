@@ -175,7 +175,7 @@ class Player extends Entity {
         this.jumpHeight = this.jumpHeightMin;
 
         this.jumpPadding = 1;
-        this.acceleration=0.1;
+        this.acceleration=0.07;
         this.deceleration=0.1;
         this.walkSpeed=1;
         this.runSpeed=3;
@@ -259,7 +259,7 @@ class Player extends Entity {
 
         //accelerate
         if(directionValue){
-            this.xVelocity += this.acceleration * directionValue;
+            this.xVelocity += directionValue * (this.animName=="Skid"?this.deceleration:this.acceleration);
             if (Math.abs(this.xVelocity) >= maxSpeed){
                 this.xVelocity = maxSpeed*directionValue;
             }
@@ -339,7 +339,7 @@ class Player extends Entity {
         }
 
         //advance walk anim based off of speed
-        let oldAnimFrame = this.animFrame%this.animations[this.power+this.animName].length;
+        let oldAnimFrame = this.animFrame;
         if (this.animName=='Walk'&&!this.yVelocity){
             this.animTick-=(Math.ceil(Math.abs(this.xVelocity)) / 2) * 2;
             
@@ -347,12 +347,12 @@ class Player extends Entity {
                 this.animFrame+=1;
             }
         }
-        if (oldAnimFrame==this.animFrame%this.animations[this.power+this.animName].length){
+        if (oldAnimFrame==this.animFrame){
             this.sameFrameCount+=1
         }else{
             this.sameFrameCount=0;
         }
-        if (this.running&&this.sameFrameCount>9){
+        if (this.running&&this.sameFrameCount>3){
             this.animTick+=1;
         }
 
