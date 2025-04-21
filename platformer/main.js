@@ -9,8 +9,6 @@ class Tile {
 
         this.image = new Image();
         this.image.src = 'tiles.png';
-        this.sliceX = (this.id % (this.image.naturalWidth / 16)) * this.w;
-        this.sliceY = Math.round(this.id / (((this.image.naturalHeight - 1) / 16))) * this.h;
     }
 
     draw(ctx) {
@@ -19,7 +17,8 @@ class Tile {
 
         ctx.drawImage(
             this.image, 
-            this.sliceX, this.sliceY,
+            (this.id % (this.image.naturalWidth / 16)) * this.w, 
+            Math.round(this.id / (((this.image.naturalHeight - 1) / 16))) * this.h,
             this.w, this.h,
             Math.floor(this.x - camX), this.y, 
             this.w, this.h
