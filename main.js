@@ -182,7 +182,7 @@ class Player extends Entity {
 
         this.jumpHeight = this.jumpHeightMin;
 
-        this.jumpPadding = 1;
+        this.jumpPadding = 3;
         this.acceleration=0.12;
         this.deceleration=0.1;
         this.walkSpeed=1;
@@ -311,7 +311,7 @@ class Player extends Entity {
         }
 
         // move 
-        this.yVelocity += this.yVelocity >= 0 ? downgravity : gravity;
+        this.yVelocity += !isKeyDown('KeyW') || this.yVelocity >= 0 ? downgravity : gravity;
         if (this.yVelocity >= terminalVelocity){
             this.yVelocity=terminalVelocity;
         }
