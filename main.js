@@ -105,9 +105,6 @@ class Entity {
     }
 
     update(theTiles) {
-        this.x += this.xVelocity;
-        this.collideX(theTiles);
-        
         // move 
         this.yVelocity += downgravity;
         if (this.yVelocity >= terminalVelocity){
@@ -116,6 +113,9 @@ class Entity {
 
         this.y += this.yVelocity;
         this.collideY(theTiles);
+        
+        this.x += this.xVelocity;
+        this.collideX(theTiles);
     }
     draw(ctx) {
         if (!Object.hasOwn(this, 'image'));{
@@ -562,6 +562,11 @@ function main() {
 
 //setInterval(main, (1000 / 60));
 requestAnimationFrame(main);
+
+//play
+function play() {
+    alert('Im lazy so this doesn\'t work yet!')
+}
 
 //utils
 
