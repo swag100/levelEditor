@@ -178,7 +178,7 @@ class Player extends Entity {
         this.acceleration=0.1;
         this.deceleration=0.1;
         this.walkSpeed=1;
-        this.runSpeed=3;
+        this.runSpeed=2;
 
         this.absVelocity=0;
 
