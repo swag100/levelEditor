@@ -1,5 +1,5 @@
-const IMAGE_PATH = 'resources/images'
-const SOUND_PATH = 'resources/sounds'
+const IMAGE_PATH = 'resources/images/'
+const SOUND_PATH = 'resources/sounds/'
 
 class Tile {
     constructor(x,y,id=0) {
@@ -672,7 +672,7 @@ function hideShow(link){
 }
 
 function updateLevelLength(element){
-    document.getElementById('lengthOutput').innerHTML = element.value+'px'; 
+    document.getElementById('lengthOutput').innerHTML = (Number(element.value)+256)+'px'; 
     camBoundsRight = Number(document.getElementById('lengthModal').value); 
     //Value of this is a string, and is why MY CAM CODE HASNT BEEN WORKING
     //console.log(camBoundsRight);

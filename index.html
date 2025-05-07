@@ -8,7 +8,7 @@
     <div class="content">
         <canvas id="canvas" width="512"height="488" style="border:1px solid black;"></canvas>
         v1.0 - 
-        <a href="https://github.com/swag100/levelEditor">view source code</a>
+        <a href="https://github.com/swag100/levelEditor" target="_blank">view source code</a>
     </div>
     <div class="sidebar">
         <input id="levelTitle" type="text" placeholder="Level title" autocomplete="off">
@@ -42,14 +42,14 @@
             </fieldset>
             <fieldset>
                 <legend>Level length</legend>
-                <label id="lengthOutput" for="lengthModal">0px</label>
+                <label id="lengthOutput" for="lengthModal">256px</label>
                 <input 
                     autocomplete="off"
                     type="range" 
                     name="lengthModal" 
                     id="lengthModal" 
                     value="0" 
-                    max="1024" 
+                    max="1792" 
                     min="0" 
                     oninput="updateLevelLength(this)"
                 >
