@@ -1,3 +1,6 @@
+const IMAGE_PATH = 'resources/images'
+const SOUND_PATH = 'resources/sounds'
+
 class Tile {
     constructor(x,y,id=0) {
         this.x = x * 16;
@@ -8,7 +11,7 @@ class Tile {
         this.id=id;
 
         this.image = new Image();
-        this.image.src = 'tiles.png';
+        this.image.src = IMAGE_PATH + 'tiles.png';
     }
 
     draw(ctx) {
@@ -134,7 +137,7 @@ class Player extends Entity {
         this.crouch=false;
 
         this.image = new Image();
-        this.image.src = 'mario.png';
+        this.image.src = IMAGE_PATH + 'mario.png';
 
         this.animations = {
             "die": [
@@ -195,7 +198,7 @@ class Player extends Entity {
         }else{
             //jump
             if (event.code=="KeyW" && !debugMode && this.onGround) {
-                playSound(this.power+"Jump.wav");
+                playSound(this.power + "Jump.wav");
                 this.yVelocity-=this.jumpHeight;
                 this.animName="Jump";
             }
@@ -529,7 +532,7 @@ function draw() {
                 );
             }else {
                 let image = new Image();
-                image.src = 'tiles.png';
+                image.src = IMAGE_PATH + 'tiles.png';
                 
                 ctx.drawImage(
                     image, 
@@ -556,7 +559,7 @@ function playSound(soundURL) {
         soundPlayer.currentTime = 0;
 
     }
-    soundPlayer.src = soundURL;
+    soundPlayer.src = SOUND_PATH + soundURL;
     soundPlayer.play();
 }
 
