@@ -182,7 +182,6 @@ class Player extends Entity {
 
         this.jumpHeight = this.jumpHeightMin;
 
-        this.jumpPadding = 3;
         this.acceleration=0.12;
         this.deceleration=0.1;
         this.walkSpeed=1;
@@ -319,9 +318,9 @@ class Player extends Entity {
 
         this.collideY(theTiles);
 
-        if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -this.jumpPadding) {
-            this.yVelocity=-this.jumpPadding;
-
+        //jump padding
+        if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -2) {
+            this.yVelocity=-2;
         }
 
         //player leaves screen, make them come back
