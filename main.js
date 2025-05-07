@@ -1,6 +1,3 @@
-const IMAGE_PATH = 'resources/images/'
-const SOUND_PATH = 'resources/sounds/'
-
 class Tile {
     constructor(x,y,id=0) {
         this.x = x * 16;
@@ -11,8 +8,10 @@ class Tile {
         this.id=id;
 
         this.image = new Image();
-        this.image.src = IMAGE_PATH + 'tiles.png';
+        this.image.src = imagePath + 'tiles.png';
     }
+
+    update() {}
 
     draw(ctx) {
         //ctx.fillStyle = this.color;
@@ -23,10 +22,16 @@ class Tile {
             (this.id % (this.image.naturalWidth / 16)) * this.w, 
             Math.round(this.id / (((this.image.naturalHeight - 1) / 16))) * this.h,
             this.w, this.h,
-            Math.floor(this.x - camX), this.y, 
+            Math.floor(this.x - Math.floor(camX)), this.y, 
             this.w, this.h
         );
 
+    }
+}
+
+class Brick extends Tile {
+    constructor(x,y) {
+        super(x, y);
     }
 }
 
@@ -129,7 +134,7 @@ class Entity {
 
 class Player extends Entity {
     constructor(x,y) {
-        super(x, y)
+        super(x, y);
 
         this.direction=false;//false=right, true=left
         this.animDirection=false;//Used for anims only... Fixes a bug!
@@ -137,7 +142,7 @@ class Player extends Entity {
         this.crouch=false;
 
         this.image = new Image();
-        this.image.src = IMAGE_PATH + 'mario.png';
+        this.image.src = imagePath + 'mario.png';
 
         this.animations = {
             "die": [
@@ -178,10 +183,10 @@ class Player extends Entity {
         this.jumpHeight = this.jumpHeightMin;
 
         this.jumpPadding = 1;
-        this.acceleration=0.1;
+        this.acceleration=0.12;
         this.deceleration=0.1;
         this.walkSpeed=1;
-        this.runSpeed=2;
+        this.runSpeed=2.6;
 
         this.absVelocity=0;
 
@@ -381,6 +386,9 @@ class Player extends Entity {
     }
 }
 
+const imagePath = 'resources/images/';
+const soundPath = 'resources/sounds/';
+
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
@@ -403,7 +411,7 @@ let keysPressed = {};
 
 //game variables
 const gravity = 0.12;
-const downgravity = 0.3;
+const downgravity = 0.36;
 const terminalVelocity = 8;
 
 //level data
@@ -429,11 +437,6 @@ updateTilesList(level);
 theEntities.push(new Player(10, 20));
 
 //functions
-function main() {
-    update();
-    draw();
-}
-
 function update() {
     if (debugMode){ //dont update any entities, so they can be dragged
         if (selectedEntity && mouseInBounds()){
@@ -471,6 +474,9 @@ function update() {
         }
         
     }else{
+        for (const tile of theTiles){
+            tile.update();
+        }
         for (const entity of theEntities){
             entity.update(theTiles);
         }
@@ -532,7 +538,7 @@ function draw() {
                 );
             }else {
                 let image = new Image();
-                image.src = IMAGE_PATH + 'tiles.png';
+                image.src = imagePath + 'tiles.png';
                 
                 ctx.drawImage(
                     image, 
@@ -549,7 +555,14 @@ function draw() {
     //end of debug
 }
 
-setInterval(main, 10);
+function main() {
+    update();
+    draw();
+    requestAnimationFrame(main); //runs as fast as monitor refresh rate
+}
+
+//setInterval(main, (1000 / 60));
+requestAnimationFrame(main);
 
 //utils
 
@@ -559,7 +572,7 @@ function playSound(soundURL) {
         soundPlayer.currentTime = 0;
 
     }
-    soundPlayer.src = SOUND_PATH + soundURL;
+    soundPlayer.src = soundPath + soundURL;
     soundPlayer.play();
 }
 
