@@ -649,6 +649,8 @@ function updateTilesList(tileData){
             theTiles.push(new Tile(xy[0], xy[1], tileData[locationString]));
             // this is where youd make a new class, eg. BrickBlock
             // entities: use a SpawnerBlock(entity), will not say block in the dropdown menu
+            // actually... You could even use this for Bricks and ?s TOO!
+            // the SpawnerBlock just CREATES the object when level is played / editor is EXITED
         }
     }
 }
