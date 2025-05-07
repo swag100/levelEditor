@@ -648,6 +648,7 @@ function updateTilesList(tileData){
             
             theTiles.push(new Tile(xy[0], xy[1], tileData[locationString]));
             // this is where youd make a new class, eg. BrickBlock
+            // entities: use a SpawnerBlock(entity), will not say block in the dropdown menu
         }
     }
 }
