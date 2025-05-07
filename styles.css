@@ -8,10 +8,10 @@ body{
 hr{
     border: none;
     border-bottom: 1px black solid;
+    margin: 0;
 }
 p,input,button,select,fieldset,hr{
-    margin: 10px;
-    margin-top: 0;
+    margin-bottom: 10px;
 }
 ul{
     margin:5px;
@@ -31,7 +31,9 @@ input[type="range"] {
     float: left;
 }
 .sidebar{
-    width: 200px;
+    width: 180px;
+    margin: 10px;
+    margin-top: 0;
     float: right;
 }
 .clear{
