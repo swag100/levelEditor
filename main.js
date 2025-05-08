@@ -207,13 +207,16 @@ class Player extends Entity {
                 this.power = this.power=="large"?"small":"large";
                 this.y-= this.power=="large"?16:-16;
                 this.updateHitbox();
+                update(levelObjects);
             }
         }else{
             //jump
             if (event.code=="KeyW" && !debugMode && this.onGround) {
                 playSound(this.power + "Jump.wav");
                 this.yVelocity-=this.jumpHeight;
-                this.animName="Jump";
+                if (!this.crouch){
+                    this.animName="Jump";
+                }
             }
         }
     }
@@ -230,9 +233,9 @@ class Player extends Entity {
                 break;
             default:
                 this.w = 10;//hitbox size
-                this.h = 16;
+                this.h = 14;
                 this.hitboxOffsetX = 3;
-                this.hitboxOffsetY = 0;
+                this.hitboxOffsetY = 2;
                 break;
         }
     }
@@ -247,6 +250,12 @@ class Player extends Entity {
 
         this.collideY(levelObjects);
 
+        //FORCE a crouch if we still collidin -- TODO: make this work
+        if(this.checkForCollisions(levelObjects).length>0){
+            this.crouch = true;
+        }
+
+
         //jump padding
         if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -2) {
             this.yVelocity=-2;
@@ -254,7 +263,7 @@ class Player extends Entity {
 
         //move
         this.running = isKeyDown('ShiftLeft');
-        this.crouch = isKeyDown('KeyS') && this.power!="small";
+        this.crouch = isKeyDown('KeyS') && this.power!="small" && this.animName!="Jump";
 
         let directionValue= (isKeyDown('KeyD') - isKeyDown('KeyA')) * !(this.onGround && this.crouch);
         let maxSpeed = this.running ? this.runSpeed : this.walkSpeed;
@@ -349,9 +358,9 @@ class Player extends Entity {
             if (!this.xCollided && this.onGround && directionValue && (this.xVelocity/Math.abs(this.xVelocity)) != directionValue){
                 this.animName="Skid";
             }
-            if (this.crouch){
-                this.animName="Crouch";
-            }
+        }
+        if (this.crouch){
+            this.animName="Crouch";
         }
 
         //advance walk anim based off of speed
