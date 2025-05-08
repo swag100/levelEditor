@@ -22,10 +22,16 @@ ul{
 fieldset{
     padding: 5px;
 }
+fieldset label, fieldset select{
+    margin-left: 10px;
+}
 input[type="range"] {
     width:90px;
     float: right;
     margin-left: 5px;
+}
+.levelIO input{
+    width:100%;
 }
 .content{
     width: 514px;
@@ -50,11 +56,9 @@ input[type="range"] {
 }
 #instructions ul li{
     font-size: 14px;
+    margin-left: 0;
     margin-bottom: 8px;
 }
 #instructions ul li:last-child{
     margin-bottom: 0;
-}
-#lengthOutput{
-    margin-left: 10px;
 }

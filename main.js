@@ -685,10 +685,17 @@ function toggleLevelEditor(){
 function hideShow(link){
     let instructions = link.parentElement;
     let instructionsList = instructions.lastElementChild;
-    let value = instructionsList.style.display=='none'
-    instructionsList.style.display = value?'block':'none';
-    instructions.style.height=value?'auto':'0';
-    link.innerHTML=value?'hide':'show';
+    let hidden = instructionsList.style.display=='none'
+    instructionsList.style.display = hidden?'block':'none';
+
+    instructions.style.borderStyle=hidden?'revert':'solid';
+    instructions.style.borderTopStyle='revert';
+    instructions.style.borderColor=hidden?'revert':'white';
+    instructions.style.borderTopColor='revert';
+
+    instructions.style.marginBottom=hidden?'10px':'-24px';
+
+    link.innerHTML=hidden?'hide':'show';
 }
 
 function updateLevelLength(element){
@@ -726,8 +733,12 @@ addEventListener('contextmenu', (event) => {
 });
 
 //io
-const fileInput = document.getElementById('importLevelButton');
-fileInput.addEventListener('change', importLevel);
+const importInput = document.getElementById('importLevelInput');
+const importButton = document.getElementById('importLevelButton');
+importInput.addEventListener('change', importLevel);
+importButton.addEventListener('click', ()=>{
+    importInput.click();
+})
 
 function importLevel(event){
     const file = event.target.files[0];
@@ -765,6 +776,10 @@ function importLevel(event){
 }
 
 function exportLevel(){
+    if (!confirm("Export the level?")){
+        return
+    }
+
     let data = {
         'levelTitle': document.getElementById('levelTitle').value,
         'levelLength': document.getElementById('lengthModal').value,

@@ -11,15 +11,16 @@
         <a href="https://github.com/swag100/levelEditor" target="_blank">view source code</a>
     </div>
     <div class="sidebar">
-        <input id="levelTitle" type="text" placeholder="Level title" autocomplete="off" style="width:100%;">
-        <button id="exportLevelButton" onclick="exportLevel()">Export Level</button>
-        <hr>
-        <p>Load a level</p>
-        <input type="file" id="importLevelButton">
+        <div class="levelIO">
+            <input id="levelTitle" type="text" placeholder="Level title" autocomplete="off">
+            <button id="exportLevelButton" onclick="exportLevel()">Export</button>
+            <input type="file" id="importLevelInput" accept="application/json" style="display:none;">
+            <button id="importLevelButton">Import</button>
+            <div style="border-bottom:1px dotted black;width:25px;display:inline-block;margin-bottom:3px;"></div>
+            <button id="playButton" onclick="play()">Play!</button>
+        </div>
         <hr>
         <button id="enterLevelEditorButton" onclick="toggleLevelEditor()">Enter Level Editor</button>
-        <button id="playButton" onclick="play()" style="float:right;margin:0;">Play!</button>
-        <div class="clear"></div>
         <div id="levelEditor" style="display: none;">
             <fieldset id="instructions">
                 <legend>Instructions</legend>
