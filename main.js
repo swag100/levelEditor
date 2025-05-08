@@ -60,17 +60,17 @@ class Entity {
     keyDown(event){}
     keyUp(event){}
 
-    checkForCollisions(theBlocks) {
+    checkForCollisions(levelObjects) {
         let collisions = [];
 
-        theBlocks.forEach((block) => {
-            if (block != this){
-                if (this.x + this.hitboxOffsetX + this.w > block.x && 
-                    this.x + this.hitboxOffsetX < block.x + block.w && 
-                    this.y + this.hitboxOffsetY + this.h > block.y && 
-                    this.y + this.hitboxOffsetY < block.y + block.h) 
+        levelObjects.forEach((obj) => {
+            if (obj != this){
+                if (this.x + this.hitboxOffsetX + this.w > obj.x && 
+                    this.x + this.hitboxOffsetX < obj.x + obj.w && 
+                    this.y + this.hitboxOffsetY + this.h > obj.y && 
+                    this.y + this.hitboxOffsetY < obj.y + obj.h) 
                 {
-                    collisions.push(block);
+                    collisions.push(obj);
                 }
             }
         });
@@ -476,8 +476,8 @@ function update() {
             if(isKeyDown('KeyA'))camX-=3;
         }
     }else{
-        for (const block of levelObjects){
-            block.update(levelObjects);
+        for (const obj of levelObjects){
+            obj.update(levelObjects);
         }
     }
     
@@ -508,9 +508,9 @@ function draw() {
         canvas.style.cursor = 'pointer';
 
         let entities = [];
-        for (const block of levelObjects){
-            if (block instanceof Entity){
-                entities.push(block);
+        for (const obj of levelObjects){
+            if (obj instanceof Entity){
+                entities.push(obj);
             }
         }
     
@@ -621,12 +621,12 @@ function isMouseButtonDown(buttonName) {
 addEventListener("keydown", function(event){
     keysPressed[event.code] = true;
 
-    for (const block of levelObjects){block.keyDown(event);}
+    for (const obj of levelObjects){obj.keyDown(event);}
 });
 addEventListener("keyup", function(event){
     keysPressed[event.code] = false;
 
-    for (const block of levelObjects){block.keyUp(event);}
+    for (const obj of levelObjects){obj.keyUp(event);}
 });
 
 onmousemove = function(event){
