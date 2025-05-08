@@ -440,7 +440,7 @@ let levelData = defaultLevelData;
 //let thePlayer = new Player(10, 20);
 let levelObjects = [];
 
-createLevelObjects(levelData);
+play();
 
 //functions
 function update() {
