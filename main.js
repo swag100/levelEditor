@@ -14,7 +14,7 @@ class Block {
     keyDown(event){}
     keyUp(event){}
 
-    update(theBlocks) {}
+    update(levelObjects) {}
 
     draw(ctx) {
         //ctx.fillStyle = this.color;
@@ -77,10 +77,10 @@ class Entity {
         return collisions;
     }
 
-    collideX(theBlocks){
+    collideX(levelObjects){
         //check for collision x
         this.xCollided=false;
-        this.checkForCollisions(theBlocks).forEach((tile) => {
+        this.checkForCollisions(levelObjects).forEach((tile) => {
             if(this.xVelocity){
                 if (this.xVelocity > 0) {
                     this.x = tile.x - this.w - this.hitboxOffsetX;
@@ -94,10 +94,10 @@ class Entity {
         });
     }
     
-    collideY(theBlocks){
+    collideY(levelObjects){
         //check for collision y
         this.onGround=false;
-        this.checkForCollisions(theBlocks).forEach((tile) => {
+        this.checkForCollisions(levelObjects).forEach((tile) => {
             if(this.yVelocity){
                 if (this.yVelocity > 0) {
                     this.y = tile.y - this.h - this.hitboxOffsetY;
@@ -111,7 +111,7 @@ class Entity {
         }); 
     }
 
-    update(theBlocks) {
+    update(levelObjects) {
         // move 
         this.yVelocity += downgravity;
         if (this.yVelocity >= terminalVelocity){
@@ -119,10 +119,10 @@ class Entity {
         }
 
         this.y += this.yVelocity;
-        this.collideY(theBlocks);
+        this.collideY(levelObjects);
         
         this.x += this.xVelocity;
-        this.collideX(theBlocks);
+        this.collideX(levelObjects);
     }
     draw(ctx) {
         if (!Object.hasOwn(this, 'image'));{
@@ -235,7 +235,7 @@ class Player extends Entity {
         }
     }
 
-    update(theBlocks) {
+    update(levelObjects) {
         //move
         this.running = isKeyDown('ShiftLeft');
         this.crouch = isKeyDown('KeyS') && this.power!="small";
@@ -289,7 +289,7 @@ class Player extends Entity {
 
         this.x += this.xVelocity;
 
-        this.collideX(theBlocks);
+        this.collideX(levelObjects);
 
         //cam
         //This was a complete nightmare. 
@@ -323,7 +323,7 @@ class Player extends Entity {
         }
         this.y += this.yVelocity;
 
-        this.collideY(theBlocks);
+        this.collideY(levelObjects);
 
         //jump padding
         if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -2) {
@@ -427,16 +427,15 @@ let camPaddingRight = 144;
 let camBoundsLeft = 0;
 let camBoundsRight = 0; //length of level
 
-
-
-let levelObjects = [];
+//level data
 let defaultLevelData = {
     '0,216':0,'16,216':0,'32,216':0,'48,216':0,'64,216':0,
     '0,232':0,'16,232':0,'32,232':0,'48,232':0,'64,232':0,
     '10,20':'Player'
 };
 let levelData = defaultLevelData;
-//level data
+
+let levelObjects = [];
 //let thePlayer = new Player(10, 20);
 
 play();
@@ -450,7 +449,7 @@ function update() {
         }
 
         //No forgiveness needed.
-        if (!selectedEntity && mouseInBounds()){
+        if (!selectedEntity && !hoveredEntity && mouseInBounds()){
             const key = getBlockKeyFromPosition(mouseLocation);
 
             if (isMouseButtonDown(0) || isMouseButtonDown(2)){
@@ -620,7 +619,11 @@ function playSound(soundURL) {
 
     }
     soundPlayer.src = soundPath + soundURL;
-    soundPlayer.play();
+    try {
+        soundPlayer.play();
+    } catch (error) {
+        console.log('sound interrupted');
+    }
 }
 
 function flipAndDrawImage(ctx, image, sx,sy, x,y, width, height, flipH, flipV) {
@@ -709,7 +712,7 @@ function createLevelObjects(levelData){
             // the SpawnerBlock just CREATES the object when level is played / editor is EXITED
         }
     }*/
-    let newLevelData = [];
+    let newLevelObjects = [];
     for (const locationString in levelData){
         if (levelData.hasOwnProperty(locationString)) {
             let objPosition = locationString.split(',');
@@ -717,13 +720,24 @@ function createLevelObjects(levelData){
 
             let obj = eval(`new ${objClass}(${objPosition[0]},${(objPosition[1])})`);
 
-            newLevelData.push(obj);
+            newLevelObjects.push(obj);
         }
     }
-    levelObjects = newLevelData;
+    levelObjects = newLevelObjects;
 }
 
-function toggleLevelEditor(){
+function createLevelData(levelObjects){
+    let newLevelData = {};
+    for (obj of levelObjects){
+        let newLocationString = obj.x+','+obj.y;
+        let classString = obj.constructor.name
+        newLevelData[newLocationString] = classString;
+    }
+    levelData = newLevelData;
+}
+
+//html things
+function toggleLevelEditor(event){
     debugMode = !debugMode;
 
     let leButton = document.getElementById('enterLevelEditorButton');
@@ -817,6 +831,8 @@ function exportLevel(){
     if (!confirm("Export the level?")){
         return
     }
+
+    createLevelData(levelObjects);
 
     let data = {
         'levelTitle': document.getElementById('levelTitle').value,
