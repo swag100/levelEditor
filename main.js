@@ -5,10 +5,13 @@ class Block {
         this.w = 16;
         this.h = 16;
 
+        this.hitboxOffsetX = 0;
+        this.hitboxOffsetY = 0;
+
         this.id=id;
 
         this.image = new Image();
-        this.image.src = imagePath + 'tiles.png';
+        this.image.src = imagePath + 'blocks.png';
     }
 
     keyDown(event){}
@@ -65,10 +68,10 @@ class Entity {
 
         levelObjects.forEach((obj) => {
             if (obj != this){
-                if (this.x + this.hitboxOffsetX + this.w > obj.x && 
-                    this.x + this.hitboxOffsetX < obj.x + obj.w && 
-                    this.y + this.hitboxOffsetY + this.h > obj.y && 
-                    this.y + this.hitboxOffsetY < obj.y + obj.h) 
+                if (this.x + this.hitboxOffsetX + this.w > obj.x + obj.hitboxOffsetX && 
+                    this.x + this.hitboxOffsetX < obj.x + obj.w + obj.hitboxOffsetX && 
+                    this.y + this.hitboxOffsetY + this.h > obj.y + obj.hitboxOffsetY && 
+                    this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY) 
                 {
                     collisions.push(obj);
                 }
@@ -80,12 +83,12 @@ class Entity {
     collideX(levelObjects){
         //check for collision x
         this.xCollided=false;
-        this.checkForCollisions(levelObjects).forEach((tile) => {
+        this.checkForCollisions(levelObjects).forEach((obj) => {
             if(this.xVelocity){
                 if (this.xVelocity > 0) {
-                    this.x = tile.x - this.w - this.hitboxOffsetX;
+                    this.x = (obj.x - this.w) + obj.hitboxOffsetX - this.hitboxOffsetX;
                 }else{
-                    this.x = tile.x + tile.w - this.hitboxOffsetX;
+                    this.x = (obj.x + obj.w) + obj.hitboxOffsetX - this.hitboxOffsetX;
                 }
             }
 
@@ -97,13 +100,13 @@ class Entity {
     collideY(levelObjects){
         //check for collision y
         this.onGround=false;
-        this.checkForCollisions(levelObjects).forEach((tile) => {
+        this.checkForCollisions(levelObjects).forEach((obj) => {
             if(this.yVelocity){
                 if (this.yVelocity > 0) {
-                    this.y = tile.y - this.h - this.hitboxOffsetY;
+                    this.y = (obj.y - this.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
                     this.onGround=true;
                 } else {
-                    this.y = tile.y + tile.h - this.hitboxOffsetY;
+                    this.y = (obj.y + obj.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
                 }
             }
 
@@ -117,10 +120,9 @@ class Entity {
         if (this.yVelocity >= terminalVelocity){
             this.yVelocity=terminalVelocity;
         }
-
         this.y += this.yVelocity;
         this.collideY(levelObjects);
-        
+
         this.x += this.xVelocity;
         this.collideX(levelObjects);
     }
@@ -236,6 +238,20 @@ class Player extends Entity {
     }
 
     update(levelObjects) {
+        // move 
+        this.yVelocity += !isKeyDown('KeyW') || this.yVelocity >= 0 ? downgravity : gravity;
+        if (this.yVelocity >= terminalVelocity){
+            this.yVelocity=terminalVelocity;
+        }
+        this.y += this.yVelocity;
+
+        this.collideY(levelObjects);
+
+        //jump padding
+        if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -2) {
+            this.yVelocity=-2;
+        }
+
         //move
         this.running = isKeyDown('ShiftLeft');
         this.crouch = isKeyDown('KeyS') && this.power!="small";
@@ -314,20 +330,6 @@ class Player extends Entity {
             if (this.x < camX+camPaddingLeft){
                 camX -=1;
             }
-        }
-
-        // move 
-        this.yVelocity += !isKeyDown('KeyW') || this.yVelocity >= 0 ? downgravity : gravity;
-        if (this.yVelocity >= terminalVelocity){
-            this.yVelocity=terminalVelocity;
-        }
-        this.y += this.yVelocity;
-
-        this.collideY(levelObjects);
-
-        //jump padding
-        if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -2) {
-            this.yVelocity=-2;
         }
 
         //player leaves screen, make them come back
@@ -558,7 +560,7 @@ function draw() {
 
                 let image = new Image();
 
-                image.src = imagePath + 'tiles.png';
+                image.src = imagePath + 'blocks.png';
                 if (Object.keys(preview_srcs).includes(idModal.value)){
                     image.src = imagePath + preview_srcs[idModal.value];
                 }
