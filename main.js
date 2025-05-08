@@ -428,17 +428,17 @@ let camPaddingRight = 144;
 let camBoundsLeft = 0;
 let camBoundsRight = 0; //length of level
 
-//level data
+
+
+let levelObjects = [];
 let defaultLevelData = {
-    '0,14':0,'1,14':0,'2,14':0,'3,14':0,'4,14':0,
-    '0,15':0,'1,15':0,'2,15':0,'3,15':0,'4,15':0,
-    '1,1':'Player'
+    '0,216':0,'16,216':0,'32,216':0,'48,216':0,'64,216':0,
+    '0,232':0,'16,232':0,'32,232':0,'48,232':0,'64,232':0,
+    '10,20':'Player'
 };
 let levelData = defaultLevelData;
-//levelData is the more friendly / compressed data for JSON files, only containing the data we NEED
-
+//level data
 //let thePlayer = new Player(10, 20);
-let levelObjects = [];
 
 play();
 
@@ -455,10 +455,14 @@ function update() {
             const key = getBlockKeyFromPosition(mouseLocation);
 
             if (isMouseButtonDown(0)){
-                if (levelData[key] != idModal.value){
-                    levelData[key] = idModal.value || 0;
-                    createLevelObjects(levelData);
+                if (getObjectAt(key)){
+                    let indexToRemove = levelObjects.indexOf(getObjectAt(key));
+                    levelObjects.splice(indexToRemove, 1);
                 }
+                alert(idModal.value);
+
+                let obj = eval(`new ${idModal.value}(${key[0]},${key[1]})`);
+                levelObjects.push(obj);
             }
             
             if (isMouseButtonDown(2)){
@@ -585,10 +589,18 @@ function play() {
 }
 
 //utils
-function getBlockKeyFromPosition(mouseLocation){
+function getObjectAt(location){
+    for (obj of levelObjects){
+        if ((obj.x, obj.y) == location){
+            return obj
+        }
+    }
+}
+
+function getBlockKeyFromPosition(position){
     return (
-        Math.floor((Math.floor(mouseLocation[0])+Math.floor(camX)) / 16)+','+
-        Math.floor((Math.floor(mouseLocation[1]) + 8) / 16)
+        Math.floor((Math.floor(position[0])+Math.floor(camX)) / 16)*16,
+        Math.floor((Math.floor(position[1]) + 8) / 16)*16
     );
 }
 
@@ -694,7 +706,7 @@ function createLevelObjects(levelData){
             let objPosition = locationString.split(',');
             let objClass = levelData[locationString] || 'Ground';
 
-            let obj = eval(`new ${objClass}(${objPosition[0]*16},${(objPosition[1]*16)-8})`);
+            let obj = eval(`new ${objClass}(${objPosition[0]},${(objPosition[1])})`);
 
             newLevelData.push(obj);
         }
