@@ -464,7 +464,7 @@ function update() {
                 levelObjects.push(obj);
             }
         }
-        if(hoveredEntity&&isMouseButtonDown(2)){
+        if(hoveredEntity&&isMouseButtonDown(2)&&!(hoveredEntity instanceof Player)){
             let indexToRemove = levelObjects.indexOf(hoveredEntity);
             levelObjects.splice(indexToRemove, 1);
             hoveredEntity = null;
@@ -548,10 +548,12 @@ function draw() {
                     'HardBlock': 1,
                     'BrickBlock': 6,
                     'LuckyBlock': 3,
-                    'Player': 0
+                    'Player': 0,
+                    'Goomba': 0
                 }
                 let preview_srcs = {
-                    'Player': 'mario.png'
+                    'Player': 'mario.png',
+                    'Goomba': 'goomba.png'
                 }
 
                 let image = new Image();
@@ -588,7 +590,9 @@ requestAnimationFrame(main);
 //play
 function play() {
     //alert('Im lazy so this doesn\'t work yet!');
-
+    if(debugMode){
+        createLevelData(levelObjects);
+    }
     createLevelObjects(levelData); //this should be the ONLY call to this in the future
     if (debugMode){
         toggleLevelEditor();
