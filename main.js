@@ -406,7 +406,6 @@ const soundPlayer = new Audio();
 //debug
 const idModal = document.getElementById('idModal');
 let debugMode = false;
-let isEntityBeingHovered = false;
 let hoveredEntity = null;
 let selectedEntity = null;
 let mousedownBlockKey = null;
@@ -454,21 +453,22 @@ function update() {
         if (!selectedEntity && mouseInBounds()){
             const key = getBlockKeyFromPosition(mouseLocation);
 
-            if (isMouseButtonDown(0)){
+            if (isMouseButtonDown(0) || isMouseButtonDown(2)){
                 if (getObjectAt(key)){
                     let indexToRemove = levelObjects.indexOf(getObjectAt(key));
                     levelObjects.splice(indexToRemove, 1);
                 }
-                alert(idModal.value);
-
+            }
+            
+            if (isMouseButtonDown(0)){
                 let obj = eval(`new ${idModal.value}(${key[0]},${key[1]})`);
                 levelObjects.push(obj);
             }
-            
-            if (isMouseButtonDown(2)){
-                delete levelData[key];
-                createLevelObjects(levelData);
-            }
+        }
+        if(hoveredEntity&&isMouseButtonDown(2)){
+            let indexToRemove = levelObjects.indexOf(hoveredEntity);
+            levelObjects.splice(indexToRemove, 1);
+            hoveredEntity = null;
         }
 
         //cam control
@@ -521,8 +521,8 @@ function draw() {
         for (const entity of entities){
             let camMouseLocation = [mouseLocation[0]+Math.floor(camX),mouseLocation[1]];
 
-            isEntityBeingHovered = pointInRect(camMouseLocation, entity);
-            if (isEntityBeingHovered){
+            hoveredEntity = null;
+            if (pointInRect(camMouseLocation, entity)){
                 hoveredEntity = entity;
                 break;
             }
@@ -536,7 +536,7 @@ function draw() {
                 selectedEntity.h
             );
         } else{
-            if (isEntityBeingHovered){
+            if (hoveredEntity){
                 ctx.fillRect(
                     Math.floor(hoveredEntity.x + hoveredEntity.hitboxOffsetX - Math.floor(camX)), 
                     Math.floor(hoveredEntity.y + hoveredEntity.hitboxOffsetY), 
@@ -548,11 +548,19 @@ function draw() {
                     'Ground': 0,
                     'HardBlock': 1,
                     'BrickBlock': 6,
-                    'LuckyBlock': 3
+                    'LuckyBlock': 3,
+                    'Player': 0
+                }
+                let preview_srcs = {
+                    'Player': 'mario.png'
                 }
 
                 let image = new Image();
+
                 image.src = imagePath + 'tiles.png';
+                if (Object.keys(preview_srcs).includes(idModal.value)){
+                    image.src = imagePath + preview_srcs[idModal.value];
+                }
 
                 ctx.drawImage(
                     image, 
@@ -580,7 +588,7 @@ requestAnimationFrame(main);
 
 //play
 function play() {
-    alert('Im lazy so this doesn\'t work yet!');
+    //alert('Im lazy so this doesn\'t work yet!');
 
     createLevelObjects(levelData); //this should be the ONLY call to this in the future
     if (debugMode){
@@ -591,17 +599,18 @@ function play() {
 //utils
 function getObjectAt(location){
     for (obj of levelObjects){
-        if ((obj.x, obj.y) == location){
+        if (obj.x == location[0] && obj.y == location[1]){
             return obj
         }
     }
+    return null
 }
 
 function getBlockKeyFromPosition(position){
-    return (
+    return [
         Math.floor((Math.floor(position[0])+Math.floor(camX)) / 16)*16,
-        Math.floor((Math.floor(position[1]) + 8) / 16)*16
-    );
+        (Math.floor((Math.floor(position[1]+ 8)) / 16)*16)-8
+    ];
 }
 
 function playSound(soundURL) {
@@ -722,8 +731,6 @@ function toggleLevelEditor(){
 
     leButton.innerHTML = debugMode ? 'Exit Level Editor' : 'Enter Level Editor';
     le.style.display = debugMode ? 'block' : 'none';
-
-    createLevelObjects(levelData);
 }
 
 function hideShow(link){
@@ -754,16 +761,12 @@ addEventListener("mousedown", (event) => {
     mouseButtonsPressed[event.button] = true;
 
     //start drag
-    if(event.button == 0 && isEntityBeingHovered && hoveredEntity){
-
+    if(event.button == 0 && hoveredEntity){
         cuteSelectionOffset = [
             hoveredEntity.x - mouseLocation[0],
             hoveredEntity.y - mouseLocation[1]
         ];
         selectedEntity = hoveredEntity;
-
-        //delete the entity that is right here in levelData
-        mousedownBlockKey = getBlockKeyFromPosition([selectedEntity.x,selectedEntity.y]);
     }
 });
 
@@ -771,12 +774,6 @@ addEventListener("mouseup", (event) => {
     mouseButtonsPressed[event.button] = false;
 
     if(selectedEntity){
-        //TODO: give it offset, so it looks smooth... a problem for later me.
-        
-        delete levelData[mousedownBlockKey];
-        levelData[getBlockKeyFromPosition(mouseLocation)] = selectedEntity.constructor.name;
-        createLevelObjects(levelData);
-
         selectedEntity=null;
     }
 });
