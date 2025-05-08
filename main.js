@@ -1,7 +1,7 @@
-class Tile {
+class Block {
     constructor(x,y,id=0) {
-        this.x = x * 16;
-        this.y = (y * 16)-8;
+        this.x = x;
+        this.y = y;
         this.w = 16;
         this.h = 16;
 
@@ -11,7 +11,10 @@ class Tile {
         this.image.src = imagePath + 'tiles.png';
     }
 
-    update() {}
+    keyDown(event){}
+    keyUp(event){}
+
+    update(theBlocks) {}
 
     draw(ctx) {
         //ctx.fillStyle = this.color;
@@ -29,10 +32,12 @@ class Tile {
     }
 }
 
-class Brick extends Tile {
-    constructor(x,y) {
-        super(x, y);
-    }
+class Ground extends Block {
+    constructor(x,y) {super(x, y, 0);}
+}
+
+class HardBlock extends Block {
+    constructor(x,y) {super(x, y, 1);}
 }
 
 class Entity {
@@ -55,25 +60,27 @@ class Entity {
     keyDown(event){}
     keyUp(event){}
 
-    checkForCollisions(theTiles) {
+    checkForCollisions(theBlocks) {
         let collisions = [];
 
-        theTiles.forEach((tile) => {
-        if (this.x + this.hitboxOffsetX + this.w > tile.x && 
-            this.x + this.hitboxOffsetX < tile.x + tile.w && 
-            this.y + this.hitboxOffsetY + this.h > tile.y && 
-            this.y + this.hitboxOffsetY < tile.y + tile.h) 
-        {
-            collisions.push(tile);
-        }
+        theBlocks.forEach((block) => {
+            if (block != this){
+                if (this.x + this.hitboxOffsetX + this.w > block.x && 
+                    this.x + this.hitboxOffsetX < block.x + block.w && 
+                    this.y + this.hitboxOffsetY + this.h > block.y && 
+                    this.y + this.hitboxOffsetY < block.y + block.h) 
+                {
+                    collisions.push(block);
+                }
+            }
         });
         return collisions;
     }
 
-    collideX(theTiles){
+    collideX(theBlocks){
         //check for collision x
         this.xCollided=false;
-        this.checkForCollisions(theTiles).forEach((tile) => {
+        this.checkForCollisions(theBlocks).forEach((tile) => {
             if(this.xVelocity){
                 if (this.xVelocity > 0) {
                     this.x = tile.x - this.w - this.hitboxOffsetX;
@@ -87,10 +94,10 @@ class Entity {
         });
     }
     
-    collideY(theTiles){
+    collideY(theBlocks){
         //check for collision y
         this.onGround=false;
-        this.checkForCollisions(theTiles).forEach((tile) => {
+        this.checkForCollisions(theBlocks).forEach((tile) => {
             if(this.yVelocity){
                 if (this.yVelocity > 0) {
                     this.y = tile.y - this.h - this.hitboxOffsetY;
@@ -104,7 +111,7 @@ class Entity {
         }); 
     }
 
-    update(theTiles) {
+    update(theBlocks) {
         // move 
         this.yVelocity += downgravity;
         if (this.yVelocity >= terminalVelocity){
@@ -112,10 +119,10 @@ class Entity {
         }
 
         this.y += this.yVelocity;
-        this.collideY(theTiles);
+        this.collideY(theBlocks);
         
         this.x += this.xVelocity;
-        this.collideX(theTiles);
+        this.collideX(theBlocks);
     }
     draw(ctx) {
         if (!Object.hasOwn(this, 'image'));{
@@ -169,7 +176,7 @@ class Player extends Entity {
             ]
         };
 
-        this.power = "large";
+        this.power = "small";
 
         this.animName = "Idle";
         this.animFrame = 0;
@@ -228,7 +235,7 @@ class Player extends Entity {
         }
     }
 
-    update(theTiles) {
+    update(theBlocks) {
         //move
         this.running = isKeyDown('ShiftLeft');
         this.crouch = isKeyDown('KeyS') && this.power!="small";
@@ -282,7 +289,7 @@ class Player extends Entity {
 
         this.x += this.xVelocity;
 
-        this.collideX(theTiles);
+        this.collideX(theBlocks);
 
         //cam
         //This was a complete nightmare. 
@@ -316,7 +323,7 @@ class Player extends Entity {
         }
         this.y += this.yVelocity;
 
-        this.collideY(theTiles);
+        this.collideY(theBlocks);
 
         //jump padding
         if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -2) {
@@ -402,6 +409,7 @@ let debugMode = false;
 let isEntityBeingHovered = false;
 let hoveredEntity = null;
 let selectedEntity = null;
+let mousedownBlockKey = null;
 let cuteSelectionOffset = [0,0];//cute
 
 let mouseLocation = [0,0];
@@ -416,9 +424,10 @@ const terminalVelocity = 8;
 //level data
 let defaultLevelData = {
     '0,14':0,'1,14':0,'2,14':0,'3,14':0,'4,14':0,
-    '0,15':0,'1,15':0,'2,15':0,'3,15':0,'4,15':0
+    '0,15':0,'1,15':0,'2,15':0,'3,15':0,'4,15':0,
+    '1,1':'Player'
 };
-let level = defaultLevelData;
+let levelData = defaultLevelData;
 
 //cam
 let camX = 0;
@@ -428,56 +437,37 @@ let camBoundsLeft = 0;
 let camBoundsRight = 0; //length of level
 
 //let thePlayer = new Player(10, 20);
-let theEntities = [];
-let theTiles = [];
+let theBlocks = [];
 
-updateTilesList(level);
-
-theEntities.push(new Player(10, 20));
+createLevelObjects(levelData);
 
 //functions
 function update() {
     if (debugMode){ //dont update any entities, so they can be dragged
         if (selectedEntity && mouseInBounds()){
             selectedEntity.x = mouseLocation[0] + cuteSelectionOffset[0];
-            selectedEntity.y = mouseLocation[1] + cuteSelectionOffset[1];   
+            selectedEntity.y = mouseLocation[1] + cuteSelectionOffset[1];
         }
 
         //No forgiveness needed.
         if (!selectedEntity && mouseInBounds()){
-            const key = (
-                Math.floor((mouseLocation[0]+Math.floor(camX)) / 16)+','+
-                Math.floor((mouseLocation[1] + 8) / 16)
-            );
+            const key = getBlockKeyFromPosition(mouseLocation);
 
             if (isMouseButtonDown(0)){
-                if (level[key] != idModal.value){
-                    level[key] = idModal.value || 0;
-                    updateTilesList(level);
+                if (levelData[key] != idModal.value){
+                    levelData[key] = idModal.value || 0;
+                    createLevelObjects(levelData);
                 }
             }
             
             if (isMouseButtonDown(2)){
-                delete level[key];
-                updateTilesList(level);
+                delete levelData[key];
+                createLevelObjects(levelData);
             }
         }
-
-        //cam control
-        if (isKeyDown('ShiftLeft')){
-            if(isKeyDown('KeyD'))camX+=6;
-            if(isKeyDown('KeyA'))camX-=6;
-        }else{
-            if(isKeyDown('KeyD'))camX+=3;
-            if(isKeyDown('KeyA'))camX-=3;
-        }
-        
     }else{
-        for (const tile of theTiles){
-            tile.update();
-        }
-        for (const entity of theEntities){
-            entity.update(theTiles);
+        for (const block of theBlocks){
+            block.update(theBlocks);
         }
     }
     
@@ -494,11 +484,8 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.globalAlpha = 1;
 
-    for (const tile of theTiles){
+    for (const tile of theBlocks){
         tile.draw(ctx);
-    }
-    for (const entity of theEntities){
-        entity.draw(ctx);
     }
 
     canvas.style.cursor = 'auto';
@@ -509,8 +496,15 @@ function draw() {
         ctx.globalAlpha = 0.5;
         
         canvas.style.cursor = 'pointer';
+
+        let entities = [];
+        for (const block of theBlocks){
+            if (block instanceof Entity){
+                entities.push(block);
+            }
+        }
     
-        for (const entity of theEntities){
+        for (const entity of entities){
             let camMouseLocation = [mouseLocation[0]+Math.floor(camX),mouseLocation[1]];
 
             isEntityBeingHovered = pointInRect(camMouseLocation, entity);
@@ -536,13 +530,20 @@ function draw() {
                     hoveredEntity.h
                 );
             }else {
+                let preview_ids = {
+                    'Ground': 0,
+                    'HardBlock': 1,
+                    'BrickBlock': 6,
+                    'LuckyBlock': 3
+                }
+
                 let image = new Image();
                 image.src = imagePath + 'tiles.png';
-                
+
                 ctx.drawImage(
                     image, 
-                    (idModal.value % (image.naturalWidth / 16)) * 16,
-                    Math.round(idModal.value / (((image.naturalHeight - 1) / 16))) * 16,
+                    (preview_ids[idModal.value] % (image.naturalWidth / 16)) * 16,
+                    Math.round(preview_ids[idModal.value] / (((image.naturalHeight - 1) / 16))) * 16,
                     16,16,
                     Math.floor((Math.floor((mouseLocation[0]+(camX%256)) / 16) * 16)-(camX%256)), 
                     (Math.floor((mouseLocation[1] - 8) / 16) * 16) + 8, 
@@ -565,10 +566,21 @@ requestAnimationFrame(main);
 
 //play
 function play() {
-    alert('Im lazy so this doesn\'t work yet!')
+    alert('Im lazy so this doesn\'t work yet!');
+
+    createLevelObjects(levelData); //this should be the ONLY call to this in the future
+    if (debugMode){
+        toggleLevelEditor();
+    }
 }
 
 //utils
+function getBlockKeyFromPosition(mouseLocation){
+    return (
+        Math.floor((Math.floor(mouseLocation[0])+Math.floor(camX)) / 16)+','+
+        Math.floor((Math.floor(mouseLocation[1]) + 8) / 16)
+    );
+}
 
 function playSound(soundURL) {
     if (soundPlayer.src){
@@ -599,12 +611,12 @@ function isMouseButtonDown(buttonName) {
 addEventListener("keydown", function(event){
     keysPressed[event.code] = true;
 
-    for (const entity of theEntities){entity.keyDown(event);}
+    for (const block of theBlocks){block.keyDown(event);}
 });
 addEventListener("keyup", function(event){
     keysPressed[event.code] = false;
 
-    for (const entity of theEntities){entity.keyUp(event);}
+    for (const block of theBlocks){block.keyUp(event);}
 });
 
 onmousemove = function(event){
@@ -614,8 +626,8 @@ onmousemove = function(event){
 
 function pointInRect(p,rect){
     return (
-        p[0] > rect.x+rect.hitboxOffsetX && p[0] < rect.x+rect.w+rect.hitboxOffsetX && 
-        p[1] > rect.y+rect.hitboxOffsetX && p[1] < rect.y+rect.h+rect.hitboxOffsetY
+        p[0] >= rect.x && p[0] <= rect.x+rect.w+(rect.hitboxOffsetX*2) && 
+        p[1] >= rect.y && p[1] <= rect.y+rect.h+(rect.hitboxOffsetY*2)
     );
 }
 
@@ -647,29 +659,37 @@ function download(data, filename, type) {
     }
 }
 
-function jsonReadyEntityData(theEntities){
-    let returnVal = [];
-    for (let obj of theEntities){
-        obj['class'] = obj.constructor.name
-        returnVal.push(obj);
-    }
-    return returnVal;
-}
-
 //level editor
-function updateTilesList(tileData){
-    theTiles = [];
-    for (const locationString in tileData) {
-        if (tileData.hasOwnProperty(locationString)) {
+
+//IMPORTANT function. call whenever we want to play level. So exit editor / click play button
+//Update REAL tiles -- in level editor, we just PREVIEW the data using tileData + entityData
+//no need for tileData and entityData to be seperate; both just need X and Y coordinates + class
+//infact, EVERY tile like ground and hard block SHOULD just be their own classes, yet I'm lazy...
+function createLevelObjects(levelData){
+    /*theBlocks = [];
+    for (const locationString in levelData) {
+        if (levelData.hasOwnProperty(locationString)) {
             let xy = locationString.split(',');
             
-            theTiles.push(new Tile(xy[0], xy[1], tileData[locationString]));
+            theBlocks.push(new Tile(xy[0], xy[1], levelData[locationString]));
             // this is where youd make a new class, eg. BrickBlock
             // entities: use a SpawnerBlock(entity), will not say block in the dropdown menu
             // actually... You could even use this for Bricks and ?s TOO!
             // the SpawnerBlock just CREATES the object when level is played / editor is EXITED
         }
+    }*/
+    let newLevelData = [];
+    for (const locationString in levelData){
+        if (levelData.hasOwnProperty(locationString)) {
+            let objPosition = locationString.split(',');
+            let objClass = levelData[locationString] || 'Ground';
+
+            let obj = eval(`new ${objClass}(${objPosition[0]*16},${(objPosition[1]*16)-8})`);
+
+            newLevelData.push(obj);
+        }
     }
+    theBlocks = newLevelData;
 }
 
 function toggleLevelEditor(){
@@ -680,22 +700,25 @@ function toggleLevelEditor(){
 
     leButton.innerHTML = debugMode ? 'Exit Level Editor' : 'Enter Level Editor';
     le.style.display = debugMode ? 'block' : 'none';
+
+    createLevelObjects(levelData);
 }
 
 function hideShow(link){
     let instructions = link.parentElement;
     let instructionsList = instructions.lastElementChild;
-    let hidden = instructionsList.style.display=='none'
-    instructionsList.style.display = hidden?'block':'none';
+    let show = instructionsList.style.display=='none';
+    instructionsList.style.display = show?'block':'none';
 
-    instructions.style.borderStyle=hidden?'revert':'solid';
+    instructions.style.borderStyle=show?'revert':'solid';
+    instructions.style.borderColor=show?'revert':'white';
+
     instructions.style.borderTopStyle='revert';
-    instructions.style.borderColor=hidden?'revert':'white';
     instructions.style.borderTopColor='revert';
 
-    instructions.style.marginBottom=hidden?'10px':'-24px';
+    instructions.style.marginBottom=show?'10px':'-24px';
 
-    link.innerHTML=hidden?'hide':'show';
+    link.innerHTML=show?'hide':'show';
 }
 
 function updateLevelLength(element){
@@ -708,13 +731,17 @@ function updateLevelLength(element){
 addEventListener("mousedown", (event) => {
     mouseButtonsPressed[event.button] = true;
 
-    if(isEntityBeingHovered && hoveredEntity){
+    //start drag
+    if(event.button == 0 && isEntityBeingHovered && hoveredEntity){
+
         cuteSelectionOffset = [
             hoveredEntity.x - mouseLocation[0],
             hoveredEntity.y - mouseLocation[1]
         ];
         selectedEntity = hoveredEntity;
 
+        //delete the entity that is right here in levelData
+        mousedownBlockKey = getBlockKeyFromPosition([selectedEntity.x,selectedEntity.y]);
     }
 });
 
@@ -722,6 +749,12 @@ addEventListener("mouseup", (event) => {
     mouseButtonsPressed[event.button] = false;
 
     if(selectedEntity){
+        //TODO: give it offset, so it looks smooth... a problem for later me.
+        
+        delete levelData[mousedownBlockKey];
+        levelData[getBlockKeyFromPosition(mouseLocation)] = selectedEntity.constructor.name;
+        createLevelObjects(levelData);
+
         selectedEntity=null;
     }
 });
@@ -744,34 +777,20 @@ function importLevel(event){
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
-      
+        reader.readAsText(file);
         reader.onload = function(event) {
             let data = JSON.parse(event.target.result);
 
-            level = data['tileData'];
-            updateTilesList(level);
-
             document.getElementById('levelTitle').value = data['levelTitle'];
-
             document.getElementById('lengthOutput').innerHTML = data['levelLength']+'px';
             document.getElementById('lengthModal').value = data['levelLength'];
+
             camBoundsRight = Number(data['levelLength']);
-
-            camX =Number(data['cameraData']);
+            camX =Number(data['cameraPosition']);
             
-
-            let newLevelEntities = [];
-            for (const obj of data['entityData']){
-                newLevelEntities.push(
-                    eval(`new ${obj['class']}(${obj['x']},${obj['y']})`)
-                );
-                //wont pass x any y into constructor
-            }
-            theEntities = newLevelEntities;
-            //console.log(theEntities)
+            levelData = data['levelData'];
+            play();
         };
-
-        reader.readAsText(file);
     }
 }
 
@@ -783,9 +802,8 @@ function exportLevel(){
     let data = {
         'levelTitle': document.getElementById('levelTitle').value,
         'levelLength': document.getElementById('lengthModal').value,
-        'cameraData': camX,
-        'tileData': level,
-        'entityData': jsonReadyEntityData(theEntities)
+        'cameraPosition': camX,
+        'levelData': levelData
     }
 
     download(

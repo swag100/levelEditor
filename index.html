@@ -34,15 +34,6 @@
                 </ul>
             </fieldset>
             <fieldset>
-                <legend>Object</legend>
-                <select name="idModal" id="idModal" autocomplete="off">
-                    <option value="0">Ground</option>
-                    <option value="1">Hard Block</option>
-                    <option value="6">Brick Block</option>
-                    <option value="3">? Block</option>
-                </select>
-            </fieldset>
-            <fieldset>
                 <legend>Level length</legend>
                 <label id="lengthOutput" for="lengthModal">256px</label>
                 <input 
@@ -55,6 +46,16 @@
                     min="0" 
                     oninput="updateLevelLength(this)"
                 >
+            </fieldset>
+            <fieldset>
+                <legend>Object</legend>
+                <select name="idModal" id="idModal" autocomplete="off">
+                    <option value="Ground">Ground</option>
+                    <option value="HardBlock">Hard Block</option>
+                    <option value="BrickBlock">Brick Block</option>
+                    <option value="LuckyBlock">? Block</option>
+                    <option value="Player">Mario</option>
+                </select>
             </fieldset>
         </div>
     </div>

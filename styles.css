@@ -62,3 +62,6 @@ input[type="range"] {
 #instructions ul li:last-child{
     margin-bottom: 0;
 }
+#enterLevelEditorButton{
+    width: 100%;
+}
