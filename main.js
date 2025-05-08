@@ -421,14 +421,6 @@ const gravity = 0.12;
 const downgravity = 0.36;
 const terminalVelocity = 8;
 
-//level data
-let defaultLevelData = {
-    '0,14':0,'1,14':0,'2,14':0,'3,14':0,'4,14':0,
-    '0,15':0,'1,15':0,'2,15':0,'3,15':0,'4,15':0,
-    '1,1':'Player'
-};
-let levelData = defaultLevelData;
-
 //cam
 let camX = 0;
 let camPaddingLeft = 32; 
@@ -436,8 +428,17 @@ let camPaddingRight = 144;
 let camBoundsLeft = 0;
 let camBoundsRight = 0; //length of level
 
+//level data
+let defaultLevelData = {
+    '0,14':0,'1,14':0,'2,14':0,'3,14':0,'4,14':0,
+    '0,15':0,'1,15':0,'2,15':0,'3,15':0,'4,15':0,
+    '1,1':'Player'
+};
+let levelData = defaultLevelData;
+//levelData is the more friendly / compressed data for JSON files, only containing the data we NEED
+
 //let thePlayer = new Player(10, 20);
-let theBlocks = [];
+let levelObjects = [];
 
 createLevelObjects(levelData);
 
@@ -465,9 +466,18 @@ function update() {
                 createLevelObjects(levelData);
             }
         }
+
+        //cam control
+        if (isKeyDown('ShiftLeft')){
+            if(isKeyDown('KeyD'))camX+=6;
+            if(isKeyDown('KeyA'))camX-=6;
+        }else{
+            if(isKeyDown('KeyD'))camX+=3;
+            if(isKeyDown('KeyA'))camX-=3;
+        }
     }else{
-        for (const block of theBlocks){
-            block.update(theBlocks);
+        for (const block of levelObjects){
+            block.update(levelObjects);
         }
     }
     
@@ -484,7 +494,7 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.globalAlpha = 1;
 
-    for (const tile of theBlocks){
+    for (const tile of levelObjects){
         tile.draw(ctx);
     }
 
@@ -498,7 +508,7 @@ function draw() {
         canvas.style.cursor = 'pointer';
 
         let entities = [];
-        for (const block of theBlocks){
+        for (const block of levelObjects){
             if (block instanceof Entity){
                 entities.push(block);
             }
@@ -611,12 +621,12 @@ function isMouseButtonDown(buttonName) {
 addEventListener("keydown", function(event){
     keysPressed[event.code] = true;
 
-    for (const block of theBlocks){block.keyDown(event);}
+    for (const block of levelObjects){block.keyDown(event);}
 });
 addEventListener("keyup", function(event){
     keysPressed[event.code] = false;
 
-    for (const block of theBlocks){block.keyUp(event);}
+    for (const block of levelObjects){block.keyUp(event);}
 });
 
 onmousemove = function(event){
@@ -689,7 +699,7 @@ function createLevelObjects(levelData){
             newLevelData.push(obj);
         }
     }
-    theBlocks = newLevelData;
+    levelObjects = newLevelData;
 }
 
 function toggleLevelEditor(){
