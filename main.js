@@ -274,8 +274,9 @@ class Player extends Entity {
 
     hitCeiling(obj){
         if (obj instanceof BrickBlock){ //instanceof PunchableBlock in the future
-            //TODO: change it to WHICHEVER ONE HAS A SMALLER DISTANCE IN X
-            if(Math.floor((this.x+(this.w/2)+this.hitboxOffsetX)/16)*16==obj.x){
+            //TODO: change it to WHICHEVER ONE HAS A SMALLER DISTANCE IN X from middle of player
+            let xDifference = (this.x+(this.w/2)+this.hitboxOffsetX)-obj.x;
+            if((xDifference>=0&&xDifference<=obj.w)){
                 this.power=="small"?obj.punch():obj.destroy();
             }
         }
@@ -529,7 +530,7 @@ function update() {
 
         //No forgiveness needed.
         if (!selectedEntity && !hoveredEntity && mouseInBounds()){
-            const key = getBlockKeyFromPosition(mouseLocation);
+            const key = getBlockPosition(mouseLocation);
 
             if (isMouseButtonDown(0) || isMouseButtonDown(2)){
                 if (getObjectAt(key)){
@@ -688,7 +689,7 @@ function getObjectAt(location){
     return null
 }
 
-function getBlockKeyFromPosition(position){
+function getBlockPosition(position){
     return [
         Math.floor((Math.floor(position[0])+Math.floor(camX)) / 16)*16,
         (Math.floor((Math.floor(position[1]+ 8)) / 16)*16)-8
