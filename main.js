@@ -202,8 +202,8 @@ class Player extends Entity {
 
     keyDown(event){
         if(debugMode){
-            //debug code - remove later!!
-            if(event.code=="ControlLeft" && debugMode){
+            //debug code - no need to remove!!
+            if(event.code=="ControlLeft"){
                 this.power = this.power=="large"?"small":"large";
                 this.y-= this.power=="large"?16:-16;
                 this.updateHitbox();
@@ -351,7 +351,7 @@ class Player extends Entity {
                 this.animName="Skid";
             }
         }
-        if (this.crouch){
+        if (this.crouch&&this.power!="small"){
             this.animName="Crouch";
         }
 
@@ -562,13 +562,13 @@ function draw() {
                     'Ground': 0,
                     'HardBlock': 1,
                     'BrickBlock': 6,
-                    'LuckyBlock': 3,
+                    'QuestionBlock': 3,
                     'Player': 0,
                     'Goomba': 0
                 }
                 let preview_srcs = {
                     'Player': 'mario.png',
-                    'Goomba': 'goomba.png'
+                    'Goomba': 'enemies.png'
                 }
 
                 let image = new Image();
