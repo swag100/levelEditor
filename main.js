@@ -415,7 +415,7 @@ class Player extends Entity {
         try{
             modAnimFrame = this.animFrame % this.animations[this.power+this.animName].length;
         }catch{
-            modAnimFrame = 0;
+            console.log('uh oh');
         }
 
         //console.log(this.power+this.animName);
