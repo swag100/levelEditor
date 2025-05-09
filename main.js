@@ -241,31 +241,11 @@ class Player extends Entity {
     }
 
     update(levelObjects) {
-        // move 
-        this.yVelocity += !isKeyDown('KeyW') || this.yVelocity >= 0 ? downgravity : gravity;
-        if (this.yVelocity >= terminalVelocity){
-            this.yVelocity=terminalVelocity;
-        }
-        this.y += this.yVelocity;
-
-        this.collideY(levelObjects);
-
-
-        //jump padding
-        if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -2) {
-            this.yVelocity=-2;
-        }
-
         //move
         this.running = isKeyDown('ShiftLeft');
         this.crouch = isKeyDown('KeyS') && this.power!="small" && this.animName!="Jump";
 
-        //FORCE a crouch if we still collidin -- TODO: make this work
-        if(this.checkForCollisions(levelObjects).length>0){
-            this.crouch = true;
-        }
-
-        let directionValue= (isKeyDown('KeyD') - isKeyDown('KeyA'));
+        let directionValue= isKeyDown('KeyD') - isKeyDown('KeyA');
         let maxSpeed = this.running ? this.runSpeed : this.walkSpeed;
 
         if(directionValue>0)this.direction=false;
@@ -300,6 +280,15 @@ class Player extends Entity {
 
         //handle powerups
         this.updateHitbox();
+        
+        //unstuck -- FIX SLIDING
+        if(!this.crouch&&this.checkForCollisions(levelObjects).length>0){
+            this.crouch=true;
+            if (this.onGround){
+                directionValue=0;
+            }
+            this.updateHitbox();
+        }
 
         //accelerate
         if(directionValue){
@@ -314,11 +303,9 @@ class Player extends Entity {
             if ((this.xVelocity/Math.abs(this.xVelocity)) != -((this.direction * 2)-1)){
                 this.xVelocity = 0;
             }
-
         }
 
         this.x += this.xVelocity;
-
         this.collideX(levelObjects);
 
         //cam
@@ -386,6 +373,18 @@ class Player extends Entity {
             this.animTick+=1;
         }
 
+        // move 
+        this.yVelocity += !isKeyDown('KeyW') || this.yVelocity >= 0 ? downgravity : gravity;
+        if (this.yVelocity >= terminalVelocity){
+            this.yVelocity=terminalVelocity;
+        }
+        this.y += this.yVelocity;
+        this.collideY(levelObjects);
+
+        //jump padding
+        if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -2) {
+            this.yVelocity=-2;
+        }
     }
 
     draw(ctx) {
