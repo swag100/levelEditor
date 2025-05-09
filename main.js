@@ -500,7 +500,7 @@ function update() {
                 levelObjects.push(obj);
             }
         }
-        if(hoveredEntity&&isMouseButtonDown(2)&&!(hoveredEntity instanceof Player)){
+        if(hoveredEntity&&isMouseButtonDown(2)){
             let indexToRemove = levelObjects.indexOf(hoveredEntity);
             levelObjects.splice(indexToRemove, 1);
             hoveredEntity = null;
