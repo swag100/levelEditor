@@ -7,6 +7,8 @@ class Block {
 
         this.hitboxOffsetX = 0;
         this.hitboxOffsetY = 0;
+        this.graphicOffsetX = 0;
+        this.graphicOffsetY = 0;
 
         this.id=id;
 
@@ -28,7 +30,7 @@ class Block {
             (this.id % (this.image.naturalWidth / 16)) * this.w, 
             Math.round(this.id / (((this.image.naturalHeight - 1) / 16))) * this.h,
             this.w, this.h,
-            Math.floor(this.x - Math.floor(camX)), this.y, 
+            Math.floor(this.x - Math.floor(camX)) + this.graphicOffsetX, this.y + this.graphicOffsetY, 
             this.w, this.h
         );
 
@@ -47,8 +49,36 @@ class BrickBlock extends Block {
     constructor(x,y) {
         super(x, y, 6);
 
-        this.punched = false;
+        this.yVelocity =0;
+
+        this.canPunch=true;
+
         //only can punch when small... when big, brick immediately breaks
+        //whatever tile the middle of mario is in gets hit
+    }
+
+    update(levelObjects){
+        this.graphicOffsetY+=this.yVelocity;
+        if(this.graphicOffsetY<0){
+            this.yVelocity+=gravity;
+        }else{
+            this.canPunch=true;
+            this.yVelocity=0;
+            this.graphicOffsetY=0;
+        }
+    }
+
+    punch(){
+        console.log('i just got punched');
+
+        if(this.canPunch){
+            this.canPunch=false;
+            this.graphicOffsetY -= 4
+        }
+    }
+
+    destroy(){
+        
     }
 }
 
@@ -77,9 +107,6 @@ class Entity {
     checkForCollisions(levelObjects) {
         let collisions = [];
 
-        //collisions that top of entity contacts
-        this.topCollisions=[];
-
         levelObjects.forEach((obj) => {
             if (obj != this){
                 if (this.x + this.hitboxOffsetX + this.w > obj.x + obj.hitboxOffsetX && 
@@ -88,11 +115,6 @@ class Entity {
                     this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY) 
                 {
                     collisions.push(obj);
-
-                    //add top collisions
-                    if(this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY){
-                        this.topCollisions.push(obj);
-                    }
                 }
             }
         });
@@ -123,8 +145,15 @@ class Entity {
             if(this.yVelocity){
                 if (this.yVelocity > 0) {
                     this.y = (obj.y - this.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
-                    this.onGround=true;
+                    this.hitFloor(obj);
                 } else {
+
+                    //hit ceiling logic. I am not sorry
+                    this.checkForCollisions(levelObjects).forEach((obj) => {
+                        this.hitCeiling(obj);
+                    })
+
+                    //snap to ceiling if inside
                     this.y = (obj.y + obj.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
                 }
             }
@@ -132,6 +161,9 @@ class Entity {
             this.yVelocity=0;
         }); 
     }
+
+    hitFloor(obj){this.onGround=true;}
+    hitCeiling(obj){}
 
     update(levelObjects) {
         // move 
@@ -236,6 +268,15 @@ class Player extends Entity {
                 if (!this.crouch){
                     this.animName="Jump";
                 }
+            }
+        }
+    }
+
+    hitCeiling(obj){
+        if (obj instanceof BrickBlock){ //instanceof PunchableBlock in the future
+            //TODO: change it to WHICHEVER ONE HAS A SMALLER DISTANCE IN X
+            if(Math.floor((this.x+(this.w/2)+this.hitboxOffsetX)/16)*16==obj.x){
+                this.power=="small"?obj.punch():obj.destroy();
             }
         }
     }
@@ -397,8 +438,6 @@ class Player extends Entity {
         if (this.yVelocity >= terminalVelocity){
             this.yVelocity=terminalVelocity;
         }
-        console.log(this.topCollisions); //for hittable blocks
-
         this.y += this.yVelocity;
         this.collideY(levelObjects);
 
