@@ -78,8 +78,15 @@ class BrickBlock extends Block {
     }
 
     destroy(){
-        
+        //TODO
     }
+}
+
+class QuestionBlock extends Block {
+    constructor(x,y) {
+        super(x, y, 3);
+    }
+
 }
 
 class Entity {
