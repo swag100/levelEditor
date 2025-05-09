@@ -250,11 +250,6 @@ class Player extends Entity {
 
         this.collideY(levelObjects);
 
-        //FORCE a crouch if we still collidin -- TODO: make this work
-        if(this.checkForCollisions(levelObjects).length>0){
-            this.crouch = true;
-        }
-
 
         //jump padding
         if (this.animName.includes("Jump") && !isKeyDown('KeyW') && this.yVelocity <= -2) {
@@ -265,7 +260,12 @@ class Player extends Entity {
         this.running = isKeyDown('ShiftLeft');
         this.crouch = isKeyDown('KeyS') && this.power!="small" && this.animName!="Jump";
 
-        let directionValue= (isKeyDown('KeyD') - isKeyDown('KeyA')) * !(this.onGround && this.crouch);
+        //FORCE a crouch if we still collidin -- TODO: make this work
+        if(this.checkForCollisions(levelObjects).length>0){
+            this.crouch = true;
+        }
+
+        let directionValue= (isKeyDown('KeyD') - isKeyDown('KeyA'));
         let maxSpeed = this.running ? this.runSpeed : this.walkSpeed;
 
         if(directionValue>0)this.direction=false;
@@ -273,6 +273,11 @@ class Player extends Entity {
 
         if (this.onGround){
             this.animDirection=this.direction;
+        }
+
+        //do it here so we dont move but still change direction
+        if (this.onGround && this.crouch){
+            directionValue=0;
         }
 
         //make you jump higher when go fast
@@ -599,9 +604,9 @@ function main() {
 requestAnimationFrame(main);
 
 //play
-function play() {
+function play(importing = false) {
     //alert('Im lazy so this doesn\'t work yet!');
-    if(debugMode){
+    if(debugMode && !importing){
         createLevelData(levelObjects);
     }
     createLevelObjects(levelData); //this should be the ONLY call to this in the future
@@ -837,7 +842,7 @@ function importLevel(event){
             camX =Number(data['cameraPosition']);
             
             levelData = data['levelData'];
-            play();
+            play(true);
         };
     }
 }
