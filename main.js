@@ -43,6 +43,15 @@ class HardBlock extends Block {
     constructor(x,y) {super(x, y, 1);}
 }
 
+class BrickBlock extends Block {
+    constructor(x,y) {
+        super(x, y, 6);
+
+        this.punched = false;
+        //only can punch when small... when big, brick immediately breaks
+    }
+}
+
 class Entity {
     constructor(x,y) {
         this.x = x; //10
@@ -53,6 +62,8 @@ class Entity {
 
         this.xCollided=false;
         this.onGround=true;
+
+        this.topCollisions=[];
 
         this.w = 10;//hitbox size
         this.h = 16;
@@ -66,6 +77,9 @@ class Entity {
     checkForCollisions(levelObjects) {
         let collisions = [];
 
+        //collisions that top of entity contacts
+        this.topCollisions=[];
+
         levelObjects.forEach((obj) => {
             if (obj != this){
                 if (this.x + this.hitboxOffsetX + this.w > obj.x + obj.hitboxOffsetX && 
@@ -74,6 +88,11 @@ class Entity {
                     this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY) 
                 {
                     collisions.push(obj);
+
+                    //add top collisions
+                    if(this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY){
+                        this.topCollisions.push(obj);
+                    }
                 }
             }
         });
@@ -378,6 +397,8 @@ class Player extends Entity {
         if (this.yVelocity >= terminalVelocity){
             this.yVelocity=terminalVelocity;
         }
+        console.log(this.topCollisions); //for hittable blocks
+
         this.y += this.yVelocity;
         this.collideY(levelObjects);
 
@@ -734,11 +755,9 @@ function createLevelObjects(levelData){
     let newLevelObjects = [];
     for (const locationString in levelData){
         if (levelData.hasOwnProperty(locationString)) {
-            let objPosition = locationString.split(',');
+            let objParameters = locationString.split(',');
             let objClass = levelData[locationString] || 'Ground';
-
-            let obj = eval(`new ${objClass}(${objPosition[0]},${(objPosition[1])})`);
-
+            let obj = eval(`new ${objClass}(${objParameters});`);
             newLevelObjects.push(obj);
         }
     }
