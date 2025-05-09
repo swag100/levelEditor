@@ -411,8 +411,12 @@ class Player extends Entity {
     draw(ctx) {
         //ctx.fillStyle = this.color;
         //ctx.fillRect(this.x, this.y, this.w, this.h);
-
-        let modAnimFrame = this.animFrame % this.animations[this.power+this.animName].length;
+        let modAnimFrame = 0;
+        try{
+            modAnimFrame = this.animFrame % this.animations[this.power+this.animName].length;
+        }catch{
+            modAnimFrame = 0;
+        }
 
         //console.log(this.power+this.animName);
         
