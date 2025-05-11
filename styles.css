@@ -30,9 +30,6 @@ input[type="range"] {
     float: right;
     margin-left: 5px;
 }
-.levelIO input{
-    width:100%;
-}
 .content{
     width: 514px;
     float: left;
@@ -54,6 +51,16 @@ input[type="range"] {
     padding-right:2px;
     background: #fff;
 }
+.flavorDots{
+    border-bottom:1px dotted black;
+    width:100%;
+    display:block;
+    margin-top:-20px;
+    margin-bottom: 20px;
+}
+#playButton{
+    float:right;
+}
 #instructions ul li{
     font-size: 14px;
     margin-left: 0;
@@ -62,6 +69,6 @@ input[type="range"] {
 #instructions ul li:last-child{
     margin-bottom: 0;
 }
-#enterLevelEditorButton{
+#levelTitle,#enterLevelEditorButton{
     width: 100%;
 }

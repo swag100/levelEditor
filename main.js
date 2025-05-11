@@ -1,5 +1,5 @@
 class Block {
-    constructor(x,y,id=0) {
+    constructor(x,y,id=0,imageName='blocks.png') {
         this.x = x;
         this.y = y;
         this.w = 16;
@@ -10,10 +10,17 @@ class Block {
         this.graphicOffsetX = 0;
         this.graphicOffsetY = 0;
 
+        this.canCollide=true;
+
         this.id=id;
 
         this.image = new Image();
-        this.image.src = imagePath + 'blocks.png';
+        this.image.src = imagePath + imageName;
+
+        //everything we NEED to know in order to recreate it
+        this.exportAttributes=[
+            'x','y'
+        ]
     }
 
     keyDown(event){}
@@ -27,14 +34,50 @@ class Block {
 
         ctx.drawImage(
             this.image, 
-            (this.id % (this.image.naturalWidth / 16)) * this.w, 
-            Math.round(this.id / (((this.image.naturalHeight - 1) / 16))) * this.h,
+            (this.id % (this.image.naturalWidth / this.w)) * this.w, 
+            Math.floor(this.id / Math.floor(this.image.naturalWidth / this.w)) * this.h,
             this.w, this.h,
-            Math.floor(this.x - Math.floor(camX)) + this.graphicOffsetX, this.y + this.graphicOffsetY, 
+            Math.floor(this.x - Math.floor(camX)) + Math.floor(this.graphicOffsetX), 
+            this.y + Math.floor(this.graphicOffsetY), 
             this.w, this.h
         );
 
     }
+}
+
+class Particle extends Block {
+    constructor(x,y,w,h,xVel,yVel,id=0,animLength=0) {
+        super(x,y,id,'particles.png');
+
+        this.w = w;
+        this.h=h;
+
+        this.xVelocity=xVel;
+        this.yVelocity=yVel;
+        this.animLength=animLength;
+
+        this.animTick=0;
+
+        this.canCollide=false;
+
+        this.exportAttributes=[];//empty means DONT EXPORT
+    }
+    update(levelObjects){
+        this.id=Math.floor(this.animTick)%this.animLength;
+        
+        this.yVelocity+=downgravity;
+        this.y+=this.yVelocity;
+
+        //this.xVelocity*=0.95;
+        this.x+=this.xVelocity;
+
+        if(this.y>256){
+            removeObjectFromArray(levelObjects, this);
+        }
+
+        this.animTick+=0.2;
+    }
+
 }
 
 class Ground extends Block {
@@ -55,12 +98,16 @@ class BrickBlock extends Block {
 
         //only can punch when small... when big, brick immediately breaks
         //whatever tile the middle of mario is in gets hit
+
+        //if block contains something, and is hit, removes element
+        // when it is empty, IMMEDIATELY becomes empty sprite
+
     }
 
     update(levelObjects){
         this.graphicOffsetY+=this.yVelocity;
         if(this.graphicOffsetY<0){
-            this.yVelocity+=gravity;
+            this.yVelocity+=downgravity;
         }else{
             this.canPunch=true;
             this.yVelocity=0;
@@ -69,16 +116,29 @@ class BrickBlock extends Block {
     }
 
     punch(){
-        console.log('i just got punched');
-
         if(this.canPunch){
             this.canPunch=false;
-            this.graphicOffsetY -= 4
+            this.yVelocity-=1.8;
         }
     }
 
     destroy(){
-        //TODO
+        playSound("smash.wav");
+        // create particles
+        
+        for (let i =0; i<4;i++){
+            let particle = new Particle(
+                this.x+((i*8)%this.w)+((i%2==0)*-8)+4, 
+                this.y+(Math.floor(i/2)*8)+((Math.floor(i/2)==0)*-8)+4,
+                8,8,
+                (((i%2==0)*2)-1)*-2,//xvel
+                -5,//yvel
+                0, 4 //animdata
+            );
+
+            levelObjects.push(particle);
+
+        }
     }
 }
 
@@ -106,6 +166,11 @@ class Entity {
         this.h = 16;
         this.hitboxOffsetX = 3;
         this.hitboxOffsetY = 0;
+
+        //everything we NEED to know in order to recreate it
+        this.exportAttributes=[
+            'x','y'
+        ]
     }
 
     keyDown(event){}
@@ -119,7 +184,8 @@ class Entity {
                 if (this.x + this.hitboxOffsetX + this.w > obj.x + obj.hitboxOffsetX && 
                     this.x + this.hitboxOffsetX < obj.x + obj.w + obj.hitboxOffsetX && 
                     this.y + this.hitboxOffsetY + this.h > obj.y + obj.hitboxOffsetY && 
-                    this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY) 
+                    this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY &&
+                    obj.canCollide) 
                 {
                     collisions.push(obj);
                 }
@@ -154,22 +220,21 @@ class Entity {
                     this.y = (obj.y - this.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
                     this.hitFloor(obj);
                 } else {
-
                     //hit ceiling logic. I am not sorry
-                    this.checkForCollisions(levelObjects).forEach((obj) => {
-                        this.hitCeiling(obj);
-                    })
+                    this.hitCeiling(levelObjects);
 
                     //snap to ceiling if inside
                     this.y = (obj.y + obj.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
                 }
-            }
 
-            this.yVelocity=0;
+                this.yVelocity=0;
+            }
         }); 
     }
 
-    hitFloor(obj){this.onGround=true;}
+    hitFloor(obj){
+        this.onGround=true;
+    }
     hitCeiling(obj){}
 
     update(levelObjects) {
@@ -200,7 +265,7 @@ class Entity {
 }
 
 class Player extends Entity {
-    constructor(x,y) {
+    constructor(x,y,power="small") {
         super(x, y);
 
         this.direction=false;//false=right, true=left
@@ -216,6 +281,7 @@ class Player extends Entity {
                 {"x":112,"y":0,"w":16,"h":16}
             ],
 
+            "smallCrouch": [{"x":0,"y":0,"w":16,"h":16}],
             "smallIdle": [{"x":0,"y":0,"w":16,"h":16}],
             "smallJump": [{"x":80,"y":0,"w":16,"h":16}],
             "smallSkid": [{"x":64,"y":0,"w":16,"h":16}],
@@ -236,7 +302,9 @@ class Player extends Entity {
             ]
         };
 
-        this.power = "small";
+        this.power = power;
+        this.exportAttributes.push('power');
+        this.updateHitbox();
 
         this.animName = "Idle";
         this.animFrame = 0;
@@ -255,7 +323,6 @@ class Player extends Entity {
         this.runSpeed=2.6;
 
         this.absVelocity=0;
-
     }
 
     keyDown(event){
@@ -270,7 +337,7 @@ class Player extends Entity {
         }else{
             //jump
             if (event.code=="KeyW" && !debugMode && this.onGround) {
-                playSound(this.power + "Jump.wav");
+                playSound("player/"+this.power + "Jump.wav");
                 this.yVelocity-=this.jumpHeight;
                 if (!this.crouch){
                     this.animName="Jump";
@@ -279,13 +346,38 @@ class Player extends Entity {
         }
     }
 
-    hitCeiling(obj){
-        if (obj instanceof BrickBlock){ //instanceof PunchableBlock in the future
-            //TODO: change it to WHICHEVER ONE HAS A SMALLER DISTANCE IN X from middle of player
-            let xDifference = (this.x+(this.w/2)+this.hitboxOffsetX)-obj.x;
-            if((xDifference>=0&&xDifference<=obj.w)){
-                this.power=="small"?obj.punch():obj.destroy();
+    hitBlock(levelObjects, block){
+        if(this.power=="small"){
+            block.punch();
+        }else{
+            removeObjectFromArray(levelObjects,block);
+
+            block.destroy();
+        }
+    }
+
+    hitCeiling(levelObjects){
+        playSound("bump.wav");
+        
+        let blockToHit;
+        this.checkForCollisions(levelObjects).forEach((obj) => {
+            if (obj instanceof BrickBlock){ //instanceof PunchableBlock in the future
+                let xDifference = (this.x+(this.w/2)+this.hitboxOffsetX)-obj.x;
+
+                let leftAdjacent= getObjectAt([obj.x-16,obj.y]);
+                let rightAdjacent= getObjectAt([obj.x+16,obj.y]);
+
+                if(
+                    (xDifference>0&&xDifference<obj.w) ||
+                    (xDifference<0&&!leftAdjacent) ||
+                    (xDifference>obj.w&&!rightAdjacent)
+                ){
+                    blockToHit = obj;
+                }
             }
+        })
+        if(blockToHit){
+            this.hitBlock(levelObjects, blockToHit);
         }
     }
 
@@ -349,7 +441,7 @@ class Player extends Entity {
         //handle powerups
         this.updateHitbox();
         
-        //unstuck -- FIX SLIDING
+        //unstuck
         if(!this.crouch&&this.checkForCollisions(levelObjects).length>0){
             this.crouch=true;
             if (this.onGround){
@@ -419,8 +511,11 @@ class Player extends Entity {
                 this.animName="Skid";
             }
         }
-        if (this.crouch&&this.power!="small"){
+        if (this.crouch){
             this.animName="Crouch";
+            if(this.power=="small"){
+                this.crouch=false;
+            }
         }
 
         //advance walk anim based off of speed
@@ -458,12 +553,7 @@ class Player extends Entity {
     draw(ctx) {
         //ctx.fillStyle = this.color;
         //ctx.fillRect(this.x, this.y, this.w, this.h);
-        let modAnimFrame = 0;
-        try{
-            modAnimFrame = this.animFrame % this.animations[this.power+this.animName].length;
-        }catch{
-            console.log('uh oh');
-        }
+        let modAnimFrame = this.animFrame % this.animations[this.power+this.animName].length;
 
         //console.log(this.power+this.animName);
         
@@ -495,7 +585,6 @@ const idModal = document.getElementById('idModal');
 let debugMode = false;
 let hoveredEntity = null;
 let selectedEntity = null;
-let mousedownBlockKey = null;
 let cuteSelectionOffset = [0,0];//cute
 
 let mouseLocation = [0,0];
@@ -518,7 +607,7 @@ let camBoundsRight = 0; //length of level
 let defaultLevelData = {
     '0,216':0,'16,216':0,'32,216':0,'48,216':0,'64,216':0,
     '0,232':0,'16,232':0,'32,232':0,'48,232':0,'64,232':0,
-    '10,20':'Player'
+    '10,20,\'small\'':'Player'
 };
 let levelData = defaultLevelData;
 
@@ -541,8 +630,7 @@ function update() {
 
             if (isMouseButtonDown(0) || isMouseButtonDown(2)){
                 if (getObjectAt(key)){
-                    let indexToRemove = levelObjects.indexOf(getObjectAt(key));
-                    levelObjects.splice(indexToRemove, 1);
+                    removeObjectFromArray(levelObjects,getObjectAt(key));
                 }
             }
             
@@ -552,8 +640,7 @@ function update() {
             }
         }
         if(hoveredEntity&&isMouseButtonDown(2)){
-            let indexToRemove = levelObjects.indexOf(hoveredEntity);
-            levelObjects.splice(indexToRemove, 1);
+            removeObjectFromArray(levelObjects,hoveredEntity);
             hoveredEntity = null;
         }
 
@@ -614,53 +701,46 @@ function draw() {
             }
         }
 
-        if (selectedEntity){
+        let entity=selectedEntity||hoveredEntity;
+        if (entity){
             ctx.fillRect(
-                Math.floor(selectedEntity.x + selectedEntity.hitboxOffsetX - Math.floor(camX)), 
-                Math.floor(selectedEntity.y + selectedEntity.hitboxOffsetY), 
-                selectedEntity.w,
-                selectedEntity.h
+                Math.floor(entity.x + entity.hitboxOffsetX - Math.floor(camX)), 
+                Math.floor(entity.y + entity.hitboxOffsetY), 
+                entity.w,
+                entity.h
             );
-        } else{
-            if (hoveredEntity){
-                ctx.fillRect(
-                    Math.floor(hoveredEntity.x + hoveredEntity.hitboxOffsetX - Math.floor(camX)), 
-                    Math.floor(hoveredEntity.y + hoveredEntity.hitboxOffsetY), 
-                    hoveredEntity.w,
-                    hoveredEntity.h
-                );
-            }else {
-                let preview_ids = {
-                    'Ground': 0,
-                    'HardBlock': 1,
-                    'BrickBlock': 6,
-                    'QuestionBlock': 3,
-                    'Player': 0,
-                    'Goomba': 0
-                }
-                let preview_srcs = {
-                    'Player': 'mario.png',
-                    'Goomba': 'enemies.png'
-                }
-
-                let image = new Image();
-
-                image.src = imagePath + 'blocks.png';
-                if (Object.keys(preview_srcs).includes(idModal.value)){
-                    image.src = imagePath + preview_srcs[idModal.value];
-                }
-
-                ctx.drawImage(
-                    image, 
-                    (preview_ids[idModal.value] % (image.naturalWidth / 16)) * 16,
-                    Math.round(preview_ids[idModal.value] / (((image.naturalHeight - 1) / 16))) * 16,
-                    16,16,
-                    Math.floor((Math.floor((mouseLocation[0]+(camX%256)) / 16) * 16)-(camX%256)), 
-                    (Math.floor((mouseLocation[1] - 8) / 16) * 16) + 8, 
-                    16,16
-                );
+        }else{
+            let preview_ids = {
+                'Ground': 0,
+                'HardBlock': 1,
+                'BrickBlock': 6,
+                'QuestionBlock': 3,
+                'Player': 0,
+                'Goomba': 0
             }
+            let preview_srcs = {
+                'Player': 'mario.png',
+                'Goomba': 'enemies.png'
+            }
+
+            let image = new Image();
+
+            image.src = imagePath + 'blocks.png';
+            if (Object.keys(preview_srcs).includes(idModal.value)){
+                image.src = imagePath + preview_srcs[idModal.value];
+            }
+
+            ctx.drawImage(
+                image, 
+                (preview_ids[idModal.value] % (image.naturalWidth / 16)) * 16,
+                Math.round(preview_ids[idModal.value] / (((image.naturalHeight - 1) / 16))) * 16,
+                16,16,
+                (Math.floor((mouseLocation[0]+(camX%256)) / 16) * 16)-(Math.floor(camX)%256), 
+                (Math.floor((mouseLocation[1] - 8) / 16) * 16) + 8, 
+                16,16
+            );
         }
+        
     }
     //end of debug
 }
@@ -675,12 +755,10 @@ function main() {
 requestAnimationFrame(main);
 
 //play
-function play(importing = false) {
+function play() {
     //alert('Im lazy so this doesn\'t work yet!');
-    if(debugMode && !importing){
-        createLevelData(levelObjects);
-    }
-    createLevelObjects(levelData); //this should be the ONLY call to this in the future
+    updateLevelObjects(levelData);
+    updateLevelData(levelObjects);
     if (debugMode){
         toggleLevelEditor();
     }
@@ -704,17 +782,8 @@ function getBlockPosition(position){
 }
 
 function playSound(soundURL) {
-    if (soundPlayer.src){
-        soundPlayer.pause();
-        soundPlayer.currentTime = 0;
-
-    }
     soundPlayer.src = soundPath + soundURL;
-    try {
-        soundPlayer.play();
-    } catch (error) {
-        console.log('sound interrupted');
-    }
+    soundPlayer.play();
 }
 
 function flipAndDrawImage(ctx, image, sx,sy, x,y, width, height, flipH, flipV) {
@@ -752,7 +821,7 @@ onmousemove = function(event){
 function pointInRect(p,rect){
     return (
         p[0] >= rect.x && p[0] <= rect.x+rect.w+(rect.hitboxOffsetX*2) && 
-        p[1] >= rect.y && p[1] <= rect.y+rect.h+(rect.hitboxOffsetY*2)
+        p[1] >= rect.y && p[1] <= rect.y+rect.h+rect.hitboxOffsetY
     );
 }
 
@@ -763,6 +832,11 @@ function mouseInBounds(){
         mouseLocation[1] > 0 && 
         mouseLocation[1] < 244
     );
+}
+
+function removeObjectFromArray(array, object){
+    let indexToRemove = array.indexOf(object);
+    array.splice(indexToRemove, 1);
 }
 
 //i stole this. https://stackoverflow.com/questions/13405129/
@@ -790,7 +864,7 @@ function download(data, filename, type) {
 //Update REAL tiles -- in level editor, we just PREVIEW the data using tileData + entityData
 //no need for tileData and entityData to be seperate; both just need X and Y coordinates + class
 //infact, EVERY tile like ground and hard block SHOULD just be their own classes, yet I'm lazy...
-function createLevelObjects(levelData){
+function updateLevelObjects(levelData, ignorePlayer=false){
     /*theBlocks = [];
     for (const locationString in levelData) {
         if (levelData.hasOwnProperty(locationString)) {
@@ -804,23 +878,52 @@ function createLevelObjects(levelData){
         }
     }*/
     let newLevelObjects = [];
-    for (const locationString in levelData){
-        if (levelData.hasOwnProperty(locationString)) {
-            let objParameters = locationString.split(',');
-            let objClass = levelData[locationString] || 'Ground';
-            let obj = eval(`new ${objClass}(${objParameters});`);
-            newLevelObjects.push(obj);
+
+    if(ignorePlayer){
+        let playerObjects=[];
+        for (const obj of levelObjects){
+            if(obj instanceof Player){
+                playerObjects.push(obj);
+            }
+        }
+        newLevelObjects = newLevelObjects.concat(playerObjects);
+    }
+
+    for (const parametersString in levelData){
+        if (levelData.hasOwnProperty(parametersString)) {
+            let objClass = levelData[parametersString] || 'Ground';
+            let obj = eval(`new ${objClass}(${parametersString});`);
+
+            if(!(ignorePlayer&&objClass=="Player")){
+                newLevelObjects.push(obj);
+            }
         }
     }
     levelObjects = newLevelObjects;
 }
 
-function createLevelData(levelObjects){
+function updateLevelData(levelObjects){
     let newLevelData = {};
-    for (obj of levelObjects){
-        let newLocationString = obj.x+','+obj.y;
+    for (const obj of levelObjects){
+        let newParametersString = '';
+        for (let i = 0; i < obj.exportAttributes.length; i++){
+            let attrName = obj.exportAttributes[i];
+            let attrValue = obj[attrName];
+            if(typeof attrValue === 'string'){
+                attrValue=`\'${attrValue}\'`;
+            }
+            newParametersString+=attrValue;
+
+            if (i!=obj.exportAttributes.length-1){
+                newParametersString+=',';
+            }
+        }
+
         let classString = obj.constructor.name
-        newLevelData[newLocationString] = classString;
+
+        if(obj.exportAttributes.length){
+            newLevelData[newParametersString] = classString;
+        }
     }
     levelData = newLevelData;
 }
@@ -834,6 +937,13 @@ function toggleLevelEditor(event){
 
     leButton.innerHTML = debugMode ? 'Exit Level Editor' : 'Enter Level Editor';
     le.style.display = debugMode ? 'block' : 'none';
+
+    if(!debugMode){ //switched out of debug, save level data
+        updateLevelData(levelObjects);
+    }else{
+        //reset all objects, except for player(s)
+        updateLevelObjects(levelData, true);
+    }
 }
 
 function hideShow(link){
@@ -911,7 +1021,7 @@ function importLevel(event){
             camX =Number(data['cameraPosition']);
             
             levelData = data['levelData'];
-            play(true);
+            play();
         };
     }
 }
@@ -921,7 +1031,7 @@ function exportLevel(){
         return
     }
 
-    createLevelData(levelObjects);
+    //updateLevelData(levelObjects);
 
     let data = {
         'levelTitle': document.getElementById('levelTitle').value,
