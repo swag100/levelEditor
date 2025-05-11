@@ -5,12 +5,16 @@ class Block {
         this.w = 16;
         this.h = 16;
 
+        this.imgGridW=16;
+        this.imgGridH=16;
+
         this.hitboxOffsetX = 0;
         this.hitboxOffsetY = 0;
         this.graphicOffsetX = 0;
         this.graphicOffsetY = 0;
 
         this.canCollide=true;
+        this.canTouch=true;
 
         this.id=id;
 
@@ -34,12 +38,12 @@ class Block {
 
         ctx.drawImage(
             this.image, 
-            (this.id % (this.image.naturalWidth / this.w)) * this.w, 
-            Math.floor(this.id / Math.floor(this.image.naturalWidth / this.w)) * this.h,
-            this.w, this.h,
+            (this.id % (this.image.naturalWidth / this.imgGridW)) * this.imgGridW, 
+            Math.floor(this.id / Math.floor(this.image.naturalWidth / this.imgGridH)) * this.imgGridH,
+            this.imgGridW, this.imgGridH,
             Math.floor(this.x - Math.floor(camX)) + Math.floor(this.graphicOffsetX), 
             Math.floor(this.y) + Math.floor(this.graphicOffsetY), 
-            this.w, this.h
+            this.imgGridW, this.imgGridH
         );
 
     }
@@ -51,6 +55,8 @@ class Particle extends Block {
 
         this.w = w;
         this.h=h;
+        this.imgGridW=w;
+        this.imgGridH=h;
 
         this.xVelocity=xVel;
         this.yVelocity=yVel;
@@ -218,6 +224,12 @@ class Coin extends Block{
         super(x,y,10,'items.png');
 
         this.canCollide=false;
+        this.canTouch=true;
+
+        this.hitboxOffsetX = 3;
+        this.hitboxOffsetY = 2;
+        this.w=10;
+        this.h=14;
 
         this.animLength=3;
         this.animOffset=10;
@@ -242,7 +254,7 @@ class Coin extends Block{
     }
 
     collect(){
-        playSound("collect.wav");
+        playSound("coin.wav");
 
         //create some sort of html to display player Lives, player Score, and player Coin count
 
@@ -257,11 +269,12 @@ class Entity {
 
         this.yVelocity=0;
         this.xVelocity = 0;
+        
+        this.canCollide=true;
+        this.canTouch=true;
 
         this.xCollided=false;
         this.onGround=true;
-
-        this.topCollisions=[];
 
         this.w = 10;//hitbox size
         this.h = 16;
@@ -285,7 +298,8 @@ class Entity {
                 if (this.x + this.hitboxOffsetX + this.w > obj.x + obj.hitboxOffsetX && 
                     this.x + this.hitboxOffsetX < obj.x + obj.w + obj.hitboxOffsetX && 
                     this.y + this.hitboxOffsetY + this.h > obj.y + obj.hitboxOffsetY && 
-                    this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY) 
+                    this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY &&
+                    obj.canTouch) 
                 {
                     collisions.push(obj);
                 }
@@ -323,14 +337,12 @@ class Entity {
                         this.hitFloor(obj);
 
                         this.y = (obj.y - this.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
-                        this.yVelocity=0;
                     } else {
                         //hit ceiling logic. I am not sorry
                         this.hitCeiling(levelObjects);
 
                         //snap to ceiling if inside
                         this.y = (obj.y + obj.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
-                        this.yVelocity=0;
                     }
 
                 }
@@ -340,20 +352,28 @@ class Entity {
 
     hitFloor(obj){
         this.onGround=true;
+        this.yVelocity=0;
     }
-    hitCeiling(obj){}
+    hitCeiling(obj){
+        this.yVelocity=0;
+    }
 
-    update(levelObjects) {
-        // move 
+    applyGravity(){
         this.yVelocity += downgravity;
         if (this.yVelocity >= terminalVelocity){
             this.yVelocity=terminalVelocity;
         }
-        this.y += this.yVelocity;
-        this.collideY(levelObjects);
+    }
+
+    update(levelObjects) {
+        // move 
+        this.applyGravity();
 
         this.x += this.xVelocity;
         this.collideX(levelObjects);
+
+        this.y += this.yVelocity;
+        this.collideY(levelObjects);
     }
     draw(ctx) {
         if (!Object.hasOwn(this, 'image'));{
@@ -367,6 +387,94 @@ class Entity {
                 this.h
             )
         }
+    }
+}
+
+class Enemy extends Entity{ //maybe add more to this...
+    constructor(x,y,facing){
+        super(x,y);
+
+        this.direction=facing;
+
+        this.image = new Image();
+        this.image.src = imagePath + 'enemies.png';
+
+        this.animations = {};
+        this.animFrame;
+        this.animName;
+    }
+
+    stomp(stomper){} // enemies handle this in many different ways
+
+    draw(ctx){
+        let modAnimFrame = Math.floor(this.animFrame) % this.animations[this.animName].length;
+
+        let size=[
+            this.animations[this.animName][modAnimFrame]['w'],
+            this.animations[this.animName][modAnimFrame]['h']
+        ]
+
+        ctx.drawImage(
+            this.image, 
+            this.animations[this.animName][modAnimFrame]['x'],
+            this.animations[this.animName][modAnimFrame]['y'],
+            size[0], size[1],
+            Math.floor(this.x) - Math.floor(camX), Math.floor(this.y), 
+            size[0], size[1]
+        );
+    }
+}
+
+class Goomba extends Enemy {
+    constructor(x,y,facing=true){
+        super(x,y,facing);
+
+        this.hitboxOffsetY=2;
+        this.h=14;
+
+        this.animations = {
+            "die": [{"x":32,"y":0,"w":16,"h":16}],
+            "walk": [
+                {"x":0,"y":0,"w":16,"h":16},
+                {"x":16,"y":0,"w":16,"h":16}
+            ]
+        };
+        this.animFrame=0;
+        this.animName="walk";
+
+        this.dead=false;
+        this.animFrameOnDeath;
+    }
+
+    stomp(stomper){
+        this.animName="die";
+        this.animFrameOnDeath=this.animFrame;
+        this.dead=true;
+        this.canCollide=false;
+    }
+
+    update(levelObjects){
+        this.animFrame+=(3/60);
+        if(this.dead){
+            if(this.animFrame-this.animFrameOnDeath>=1.5){
+                removeObjectFromArray(levelObjects,this);
+            }
+            return;
+        }
+
+        this.xVelocity=0.5*((this.direction*2)-1);
+
+        this.applyGravity();
+
+        this.x += this.xVelocity;
+        if(this.checkForCollisions(levelObjects).length>0){
+            this.direction=!this.direction;
+        }
+        this.collideX(levelObjects);
+
+        this.y += this.yVelocity;
+        this.collideY(levelObjects);
+
     }
 }
 
@@ -454,12 +562,43 @@ class Player extends Entity {
         }
     }
 
-    hitCeiling(levelObjects){
-        playSound("bump.wav");
-        
-        let blockToHit;
+    getObjectsOfClass(levelObjects, classToLookFor){
+        levelObjects = Array.isArray(levelObjects) ? levelObjects : [levelObjects];
+
+        let objectsOfClass=[];
         this.checkForCollisions(levelObjects).forEach((obj) => {
-            if (obj instanceof ContainerBlock){ //instanceof PunchableBlock in the future
+            let isCorrectClass = eval(`obj instanceof ${classToLookFor}`);
+            if (isCorrectClass){
+                objectsOfClass.push(obj);
+            }
+        })
+        return objectsOfClass;
+    }
+
+    hitFloor(levelObjects){
+        let collidedEnemies = this.getObjectsOfClass(levelObjects, "Enemy");
+        if(collidedEnemies.length){
+            for (const enemy of collidedEnemies){
+                playSound("stomp.wav"); 
+                enemy.stomp(this);
+
+                this.yVelocity=-this.jumpHeightMax;
+            }
+        }else{
+            super.hitFloor(levelObjects);
+        }
+    }
+
+    hitCeiling(levelObjects){
+        super.hitCeiling(levelObjects);
+
+        playSound("bump.wav"); 
+        
+        let collidedBlocks = this.getObjectsOfClass(levelObjects, "ContainerBlock");
+        if(collidedBlocks.length){
+            let blockToHit;
+
+            for (const obj of collidedBlocks){
                 let xDifference = (this.x+(this.w/2)+this.hitboxOffsetX)-obj.x;
 
                 let leftAdjacent= getObjectAt([obj.x-16,obj.y]);
@@ -472,9 +611,8 @@ class Player extends Entity {
                 ){
                     blockToHit = obj;
                 }
+
             }
-        })
-        if(blockToHit){
             blockToHit.punch(this);
         }
     }
@@ -540,7 +678,23 @@ class Player extends Entity {
         this.updateHitbox();
         
         //unstuck
-        if(!this.crouch&&this.checkForCollisions(levelObjects).length>0){
+        let unstuckCollisions = this.checkForCollisions(levelObjects);
+        let unstuck=false;
+        if(unstuckCollisions.length>0){
+            unstuck=true;
+            for (const obj of unstuckCollisions){
+                if(!obj.canCollide||!obj.canTouch){
+                    unstuck=false;
+                }
+
+                //this is hardcoded for now. How can i make this more generic?
+                //posible ideas is a Collectable class
+                if(obj instanceof Coin){ 
+                    obj.collect(); 
+                }
+            }
+        }
+        if(unstuck&&!this.crouch){
             this.crouch=true;
             if (this.onGround){
                 directionValue=0;
@@ -819,10 +973,12 @@ function draw() {
                 'CloudBlock': 7,
                 'BrickBlock': 6,
                 'QuestionBlock': 3,
+                'Coin': 10,
                 'Player': 0,
                 'Goomba': 0
             }
             let preview_srcs = {
+                'Coin': 'items.png',
                 'Player': 'mario.png',
                 'Goomba': 'enemies.png'
             }
@@ -1136,7 +1292,7 @@ function exportLevel(){
         return
     }
 
-    //updateLevelData(levelObjects);
+    updateLevelData(levelObjects);
 
     let data = {
         'levelTitle': document.getElementById('levelTitle').value,
