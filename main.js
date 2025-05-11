@@ -38,7 +38,7 @@ class Block {
             Math.floor(this.id / Math.floor(this.image.naturalWidth / this.w)) * this.h,
             this.w, this.h,
             Math.floor(this.x - Math.floor(camX)) + Math.floor(this.graphicOffsetX), 
-            this.y + Math.floor(this.graphicOffsetY), 
+            Math.floor(this.y) + Math.floor(this.graphicOffsetY), 
             this.w, this.h
         );
 
@@ -55,6 +55,7 @@ class Particle extends Block {
         this.xVelocity=xVel;
         this.yVelocity=yVel;
         this.animLength=animLength;
+        this.animOffset=id;
 
         this.animTick=0;
 
@@ -63,7 +64,7 @@ class Particle extends Block {
         this.exportAttributes=[];//empty means DONT EXPORT
     }
     update(levelObjects){
-        this.id=Math.floor(this.animTick)%this.animLength;
+        this.id=(Math.floor(this.animTick)%this.animLength)+this.animOffset;
         
         this.yVelocity+=downgravity;
         this.y+=this.yVelocity;
@@ -88,13 +89,45 @@ class HardBlock extends Block {
     constructor(x,y) {super(x, y, 1);}
 }
 
-class BrickBlock extends Block {
-    constructor(x,y) {
-        super(x, y, 6);
+class ContainerBlock extends Block { //block with potential to hold something
+    constructor(x,y,id,contains=null) {
+        super(x,y,id);
+
+        this.item=contains;
 
         this.yVelocity =0;
 
         this.canPunch=true;
+    }
+
+    update(levelObjects){
+        this.graphicOffsetY+=this.yVelocity;
+        if(this.graphicOffsetY<0){
+            this.yVelocity+=downgravity;
+        }else{
+            this.yVelocity=0;
+            this.graphicOffsetY=0;
+        }
+    }
+
+    releaseItem(){
+        this.id=2; //turn into empty block
+    }
+
+    punch(puncher){
+        if(this.canPunch){
+            this.canPunch=false;
+            this.yVelocity-=1.8;
+
+            //release item
+            this.releaseItem();
+        }
+    }
+}
+
+class BrickBlock extends ContainerBlock {
+    constructor(x,y,contains=null) {
+        super(x, y, 6, contains);
 
         //only can punch when small... when big, brick immediately breaks
         //whatever tile the middle of mario is in gets hit
@@ -105,27 +138,33 @@ class BrickBlock extends Block {
     }
 
     update(levelObjects){
-        this.graphicOffsetY+=this.yVelocity;
-        if(this.graphicOffsetY<0){
-            this.yVelocity+=downgravity;
-        }else{
+        super.update(levelObjects);
+
+        if(this.yVelocity==0){
             this.canPunch=true;
-            this.yVelocity=0;
-            this.graphicOffsetY=0;
         }
     }
 
-    punch(){
-        if(this.canPunch){
-            this.canPunch=false;
-            this.yVelocity-=1.8;
+    releaseItem(){
+        if (this.item){
+            super.releaseItem();
+        }
+    }
+
+    punch(puncher){
+        if(puncher.power!="small"&&!this.item){
+            this.destroy();
+        }else{
+            super.punch(puncher);
         }
     }
 
     destroy(){
         playSound("smash.wav");
+
+        removeObjectFromArray(levelObjects, this);
+
         // create particles
-        
         for (let i =0; i<4;i++){
             let particle = new Particle(
                 this.x+((i*8)%this.w)+((i%2==0)*-8)+4, 
@@ -139,14 +178,76 @@ class BrickBlock extends Block {
             levelObjects.push(particle);
 
         }
+
     }
 }
 
-class QuestionBlock extends Block {
+class QuestionBlock extends ContainerBlock {
     constructor(x,y) {
         super(x, y, 3);
+
+        this.animLength=3;
+        this.animOffset=3;
+
+        this.animTick=0;
+        this.animSpeed=(5/60);
+
+        this.direction=true;
     }
 
+    update(levelObjects){
+        if(this.canPunch){
+            let speed=this.animSpeed;
+            if(this.animTick<1){
+                speed=(2/60);
+            }
+            this.animTick+=((this.direction*2)-1)*speed;
+
+            if(this.animTick>this.animLength-speed||this.animTick<speed){
+                this.direction=!this.direction;
+            }
+            this.id=(Math.floor(this.animTick)%this.animLength)+this.animOffset;
+        }
+
+        super.update(levelObjects);
+    }
+}
+
+class Coin extends Block{
+    constructor(x,y){
+        super(x,y,10,'items.png');
+
+        this.canCollide=false;
+
+        this.animLength=3;
+        this.animOffset=10;
+
+        this.animTick=0;
+        this.animSpeed=(5/60);
+
+        this.direction=true;
+    }
+
+    update(levelObjects){
+        let speed=this.animSpeed;
+        if(this.animTick<1){
+            speed=(2/60);
+        }
+        this.animTick+=((this.direction*2)-1)*speed;
+
+        if(this.animTick>this.animLength-speed||this.animTick<speed){
+            this.direction=!this.direction;
+        }
+        this.id=(Math.floor(this.animTick)%this.animLength)+this.animOffset;
+    }
+
+    collect(){
+        playSound("collect.wav");
+
+        //create some sort of html to display player Lives, player Score, and player Coin count
+
+        removeObjectFromArray(levelObjects, this);
+    }
 }
 
 class Entity {
@@ -184,8 +285,7 @@ class Entity {
                 if (this.x + this.hitboxOffsetX + this.w > obj.x + obj.hitboxOffsetX && 
                     this.x + this.hitboxOffsetX < obj.x + obj.w + obj.hitboxOffsetX && 
                     this.y + this.hitboxOffsetY + this.h > obj.y + obj.hitboxOffsetY && 
-                    this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY &&
-                    obj.canCollide) 
+                    this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY) 
                 {
                     collisions.push(obj);
                 }
@@ -198,16 +298,18 @@ class Entity {
         //check for collision x
         this.xCollided=false;
         this.checkForCollisions(levelObjects).forEach((obj) => {
-            if(this.xVelocity){
-                if (this.xVelocity > 0) {
-                    this.x = (obj.x - this.w) + obj.hitboxOffsetX - this.hitboxOffsetX;
-                }else{
-                    this.x = (obj.x + obj.w) + obj.hitboxOffsetX - this.hitboxOffsetX;
+            if(obj.canCollide){
+                if(this.xVelocity){
+                    if (this.xVelocity > 0) {
+                        this.x = (obj.x - this.w) + obj.hitboxOffsetX - this.hitboxOffsetX;
+                    }else{
+                        this.x = (obj.x + obj.w) + obj.hitboxOffsetX - this.hitboxOffsetX;
+                    }
                 }
-            }
 
-            this.xCollided=true;
-            this.xVelocity=0;
+                this.xCollided=true;
+                this.xVelocity=0;
+            }
         });
     }
     
@@ -215,19 +317,23 @@ class Entity {
         //check for collision y
         this.onGround=false;
         this.checkForCollisions(levelObjects).forEach((obj) => {
-            if(this.yVelocity){
-                if (this.yVelocity > 0) {
-                    this.y = (obj.y - this.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
-                    this.hitFloor(obj);
-                } else {
-                    //hit ceiling logic. I am not sorry
-                    this.hitCeiling(levelObjects);
+            if(obj.canCollide){
+                if(this.yVelocity){
+                    if (this.yVelocity > 0){
+                        this.hitFloor(obj);
 
-                    //snap to ceiling if inside
-                    this.y = (obj.y + obj.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
+                        this.y = (obj.y - this.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
+                        this.yVelocity=0;
+                    } else {
+                        //hit ceiling logic. I am not sorry
+                        this.hitCeiling(levelObjects);
+
+                        //snap to ceiling if inside
+                        this.y = (obj.y + obj.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
+                        this.yVelocity=0;
+                    }
+
                 }
-
-                this.yVelocity=0;
             }
         }); 
     }
@@ -267,6 +373,8 @@ class Entity {
 class Player extends Entity {
     constructor(x,y,power="small") {
         super(x, y);
+
+        this.canCollide=true;
 
         this.direction=false;//false=right, true=left
         this.animDirection=false;//Used for anims only... Fixes a bug!
@@ -346,22 +454,12 @@ class Player extends Entity {
         }
     }
 
-    hitBlock(levelObjects, block){
-        if(this.power=="small"){
-            block.punch();
-        }else{
-            removeObjectFromArray(levelObjects,block);
-
-            block.destroy();
-        }
-    }
-
     hitCeiling(levelObjects){
         playSound("bump.wav");
         
         let blockToHit;
         this.checkForCollisions(levelObjects).forEach((obj) => {
-            if (obj instanceof BrickBlock){ //instanceof PunchableBlock in the future
+            if (obj instanceof ContainerBlock){ //instanceof PunchableBlock in the future
                 let xDifference = (this.x+(this.w/2)+this.hitboxOffsetX)-obj.x;
 
                 let leftAdjacent= getObjectAt([obj.x-16,obj.y]);
@@ -377,7 +475,7 @@ class Player extends Entity {
             }
         })
         if(blockToHit){
-            this.hitBlock(levelObjects, blockToHit);
+            blockToHit.punch(this);
         }
     }
 
@@ -703,6 +801,11 @@ function draw() {
 
         let entity=selectedEntity||hoveredEntity;
         if (entity){
+            canvas.style.cursor = 'grab';
+            if(selectedEntity){
+                canvas.style.cursor = 'grabbing';
+            }
+
             ctx.fillRect(
                 Math.floor(entity.x + entity.hitboxOffsetX - Math.floor(camX)), 
                 Math.floor(entity.y + entity.hitboxOffsetY), 
@@ -713,6 +816,7 @@ function draw() {
             let preview_ids = {
                 'Ground': 0,
                 'HardBlock': 1,
+                'CloudBlock': 7,
                 'BrickBlock': 6,
                 'QuestionBlock': 3,
                 'Player': 0,
@@ -724,6 +828,7 @@ function draw() {
             }
 
             let image = new Image();
+            let id = preview_ids[idModal.value];
 
             image.src = imagePath + 'blocks.png';
             if (Object.keys(preview_srcs).includes(idModal.value)){
@@ -732,8 +837,8 @@ function draw() {
 
             ctx.drawImage(
                 image, 
-                (preview_ids[idModal.value] % (image.naturalWidth / 16)) * 16,
-                Math.round(preview_ids[idModal.value] / (((image.naturalHeight - 1) / 16))) * 16,
+                (id % (image.naturalWidth / 16)) * 16, 
+                Math.floor(id / Math.floor(image.naturalWidth / 16)) * 16,
                 16,16,
                 (Math.floor((mouseLocation[0]+(camX%256)) / 16) * 16)-(Math.floor(camX)%256), 
                 (Math.floor((mouseLocation[1] - 8) / 16) * 16) + 8, 

@@ -1,0 +1,28 @@
+goal: be able to remake 1-1
+
+in Order to do that, we need to implement quite a lot of things
+
+In progress:
+    - Coins
+    - Goombas
+    - Container blocks being assigned items (might try to figure out object properties for this)
+
+/////////////////////////////////////////////////////////////////////
+
+- Object Properties
+- Drag objects onto containerblocks to set their item
+- Level Properties
+- Level palettes (Figure out shaders)
+- Sub worlds
+
+- Add new objects
+    - Coins
+    - Cloud block (One way platform)
+    - Pipe (drag pipe ends to extend length, click + drag pipe sides to extrude intersections)
+    - Bridge (drag each side to extend)
+    - Moving platform (drag each side to extend)
+- Add enemies
+    - Goomba
+    - Koopa
+    - Piranha Plant
+    - Pipe paranha plant (drag piranha plant onto pipe)
