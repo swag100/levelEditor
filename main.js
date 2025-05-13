@@ -14,7 +14,6 @@ class Block {
         this.graphicOffsetY = 0;
 
         this.canCollide=true;
-        this.canTouch=true;
 
         this.id=id;
 
@@ -224,7 +223,6 @@ class Coin extends Block{
         super(x,y,10,'items.png');
 
         this.canCollide=false;
-        this.canTouch=true;
 
         this.hitboxOffsetX = 3;
         this.hitboxOffsetY = 2;
@@ -271,7 +269,6 @@ class Entity {
         this.xVelocity = 0;
         
         this.canCollide=true;
-        this.canTouch=true;
 
         this.xCollided=false;
         this.onGround=true;
@@ -290,28 +287,40 @@ class Entity {
     keyDown(event){}
     keyUp(event){}
 
-    checkForCollisions(levelObjects) {
-        let collisions = [];
+    checkAllCollisions(levelObjects) {
+        let collidedObjects = [];
+        let touchedObjects = [];
 
         levelObjects.forEach((obj) => {
             if (obj != this){
                 if (this.x + this.hitboxOffsetX + this.w > obj.x + obj.hitboxOffsetX && 
                     this.x + this.hitboxOffsetX < obj.x + obj.w + obj.hitboxOffsetX && 
                     this.y + this.hitboxOffsetY + this.h > obj.y + obj.hitboxOffsetY && 
-                    this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY &&
-                    obj.canTouch) 
+                    this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY) 
                 {
-                    collisions.push(obj);
+                    if(obj.canCollide){
+                        collidedObjects.push(obj);
+                    }else{
+                        touchedObjects.push(obj);
+                    }
                 }
             }
         });
-        return collisions;
+        return [collidedObjects, touchedObjects];
+    }
+
+    getCollidedObjects(levelObjects){
+        return this.checkAllCollisions(levelObjects)[0];
+    }
+
+    getTouchedObjects(levelObjects){
+        return this.checkAllCollisions(levelObjects)[1];
     }
 
     collideX(levelObjects){
         //check for collision x
         this.xCollided=false;
-        this.checkForCollisions(levelObjects).forEach((obj) => {
+        this.getCollidedObjects(levelObjects).forEach((obj) => {
             if(obj.canCollide){
                 if(this.xVelocity){
                     if (this.xVelocity > 0) {
@@ -330,7 +339,7 @@ class Entity {
     collideY(levelObjects){
         //check for collision y
         this.onGround=false;
-        this.checkForCollisions(levelObjects).forEach((obj) => {
+        this.getCollidedObjects(levelObjects).forEach((obj) => {
             if(obj.canCollide){
                 if(this.yVelocity){
                     if (this.yVelocity > 0){
@@ -467,7 +476,9 @@ class Goomba extends Enemy {
         this.applyGravity();
 
         this.x += this.xVelocity;
-        if(this.checkForCollisions(levelObjects).length>0){
+        if (this.getCollidedObjects(levelObjects).length>0 ||
+            this.x <= camBoundsLeft ||
+            this.x + this.w + (this.hitboxOffsetX * 2) >= camBoundsRight + 256){
             this.direction=!this.direction;
         }
         this.collideX(levelObjects);
@@ -566,7 +577,7 @@ class Player extends Entity {
         levelObjects = Array.isArray(levelObjects) ? levelObjects : [levelObjects];
 
         let objectsOfClass=[];
-        this.checkForCollisions(levelObjects).forEach((obj) => {
+        this.getCollidedObjects(levelObjects).forEach((obj) => {
             let isCorrectClass = eval(`obj instanceof ${classToLookFor}`);
             if (isCorrectClass){
                 objectsOfClass.push(obj);
@@ -578,12 +589,11 @@ class Player extends Entity {
     hitFloor(levelObjects){
         let collidedEnemies = this.getObjectsOfClass(levelObjects, "Enemy");
         if(collidedEnemies.length){
-            for (const enemy of collidedEnemies){
-                playSound("stomp.wav"); 
-                enemy.stomp(this);
+            const enemy = collidedEnemies[0]; //always the first one you touch
+            playSound("stomp.wav"); 
+            enemy.stomp(this);
 
-                this.yVelocity=-this.jumpHeightMax;
-            }
+            this.yVelocity=-this.jumpHeightMax;
         }else{
             super.hitFloor(levelObjects);
         }
@@ -678,28 +688,23 @@ class Player extends Entity {
         this.updateHitbox();
         
         //unstuck
-        let unstuckCollisions = this.checkForCollisions(levelObjects);
-        let unstuck=false;
-        if(unstuckCollisions.length>0){
-            unstuck=true;
-            for (const obj of unstuckCollisions){
-                if(!obj.canCollide||!obj.canTouch){
-                    unstuck=false;
-                }
-
-                //this is hardcoded for now. How can i make this more generic?
-                //posible ideas is a Collectable class
-                if(obj instanceof Coin){ 
-                    obj.collect(); 
-                }
-            }
-        }
-        if(unstuck&&!this.crouch){
+        if(this.getCollidedObjects(levelObjects).length>0&&!this.crouch){
             this.crouch=true;
             if (this.onGround){
                 directionValue=0;
             }
             this.updateHitbox();
+        }
+
+        for (const obj of this.getTouchedObjects(levelObjects)){
+            if(obj instanceof Coin){ 
+                obj.collect(); 
+            }
+            //only takes ONE non cancollide object to unstuck...
+            // This causes the collisions to freak out when stomping more than one goomba
+
+            //this is hardcoded for now. How can i make this more generic?
+            //posible ideas is a Collectable class
         }
 
         //accelerate
