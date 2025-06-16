@@ -287,40 +287,30 @@ class Entity {
     keyDown(event){}
     keyUp(event){}
 
-    checkAllCollisions(levelObjects) {
-        let collidedObjects = [];
-        let touchedObjects = [];
+    collided(obj){
+        return (
+            this.x + this.hitboxOffsetX + this.w > obj.x + obj.hitboxOffsetX && 
+            this.x + this.hitboxOffsetX < obj.x + obj.w + obj.hitboxOffsetX && 
+            this.y + this.hitboxOffsetY + this.h > obj.y + obj.hitboxOffsetY && 
+            this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY
+        );
+    }
+
+    getCollisions(levelObjects) {
+        let collisions = [];
 
         levelObjects.forEach((obj) => {
-            if (obj != this){
-                if (this.x + this.hitboxOffsetX + this.w > obj.x + obj.hitboxOffsetX && 
-                    this.x + this.hitboxOffsetX < obj.x + obj.w + obj.hitboxOffsetX && 
-                    this.y + this.hitboxOffsetY + this.h > obj.y + obj.hitboxOffsetY && 
-                    this.y + this.hitboxOffsetY < obj.y + obj.h + obj.hitboxOffsetY) 
-                {
-                    if(obj.canCollide){
-                        collidedObjects.push(obj);
-                    }else{
-                        touchedObjects.push(obj);
-                    }
-                }
+            if (this.collided(obj) && obj != this) {
+                collisions.push(obj);
             }
         });
-        return [collidedObjects, touchedObjects];
-    }
-
-    getCollidedObjects(levelObjects){
-        return this.checkAllCollisions(levelObjects)[0];
-    }
-
-    getTouchedObjects(levelObjects){
-        return this.checkAllCollisions(levelObjects)[1];
+        return collisions;
     }
 
     collideX(levelObjects){
         //check for collision x
         this.xCollided=false;
-        this.getCollidedObjects(levelObjects).forEach((obj) => {
+        this.getCollisions(levelObjects).forEach((obj) => {
             if(obj.canCollide){
                 if(this.xVelocity){
                     if (this.xVelocity > 0) {
@@ -339,7 +329,7 @@ class Entity {
     collideY(levelObjects){
         //check for collision y
         this.onGround=false;
-        this.getCollidedObjects(levelObjects).forEach((obj) => {
+        this.getCollisions(levelObjects).forEach((obj) => {
             if(obj.canCollide){
                 if(this.yVelocity){
                     if (this.yVelocity > 0){
@@ -476,7 +466,7 @@ class Goomba extends Enemy {
         this.applyGravity();
 
         this.x += this.xVelocity;
-        if (this.getCollidedObjects(levelObjects).length>0 ||
+        if (this.getCollisions(levelObjects).length>0 ||
             this.x <= camBoundsLeft ||
             this.x + this.w + (this.hitboxOffsetX * 2) >= camBoundsRight + 256){
             this.direction=!this.direction;
@@ -577,7 +567,7 @@ class Player extends Entity {
         levelObjects = Array.isArray(levelObjects) ? levelObjects : [levelObjects];
 
         let objectsOfClass=[];
-        this.getCollidedObjects(levelObjects).forEach((obj) => {
+        this.getCollisions(levelObjects).forEach((obj) => {
             let isCorrectClass = eval(`obj instanceof ${classToLookFor}`);
             if (isCorrectClass){
                 objectsOfClass.push(obj);
@@ -596,6 +586,11 @@ class Player extends Entity {
             this.yVelocity=-this.jumpHeightMax;
         }else{
             super.hitFloor(levelObjects);
+        }
+
+        //stop jump sound when land
+        if(soundsActive["player/"+this.power+"Jump.wav"]){
+            stopSound("player/"+this.power + "Jump.wav");
         }
     }
 
@@ -688,7 +683,7 @@ class Player extends Entity {
         this.updateHitbox();
         
         //unstuck
-        if(this.getCollidedObjects(levelObjects).length>0&&!this.crouch){
+        if(this.getCollisions(levelObjects).length>0&&!this.crouch){
             this.crouch=true;
             if (this.onGround){
                 directionValue=0;
@@ -696,7 +691,7 @@ class Player extends Entity {
             this.updateHitbox();
         }
 
-        for (const obj of this.getTouchedObjects(levelObjects)){
+        for (const obj of this.getCollisions(levelObjects)){
             if(obj instanceof Coin){ 
                 obj.collect(); 
             }
@@ -835,7 +830,7 @@ const ctx = canvas.getContext("2d");
 ctx.scale(2, 2);
 ctx.imageSmoothingEnabled= false;
 
-const soundPlayer = new Audio();
+const soundsActive = [];
 
 //debug
 const idModal = document.getElementById('idModal');
@@ -1048,8 +1043,19 @@ function getBlockPosition(position){
 }
 
 function playSound(soundURL) {
-    soundPlayer.src = soundPath + soundURL;
-    soundPlayer.play();
+    const sound = new Audio(soundPath + soundURL);
+    sound.addEventListener('ended', () => {
+        delete soundsActive[soundURL];
+    });
+    soundsActive[soundURL] = sound;
+
+    sound.play();
+}
+function stopSound(soundURL) {
+    if(soundsActive[soundURL]){
+        soundsActive[soundURL].pause();
+        delete soundsActive[soundURL];
+    }
 }
 
 function flipAndDrawImage(ctx, image, sx,sy, x,y, width, height, flipH, flipV) {
