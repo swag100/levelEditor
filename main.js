@@ -373,6 +373,9 @@ class Entity {
 
         this.y += this.yVelocity;
         this.collideY(levelObjects);
+
+        //ANY entity leaves screen, make them come back
+        if (this.y >= 488)this.y = -this.h;
     }
     draw(ctx) {
         if (!Object.hasOwn(this, 'image'));{
@@ -744,9 +747,6 @@ class Player extends Entity {
                 camX -=1;
             }
         }
-
-        //player leaves screen, make them come back
-        if (this.y >= 488)this.y = -this.h;
 
         //switch anims
         if (this.onGround&&!this.yVelocity){ //get out of jumping
