@@ -334,14 +334,9 @@ class Entity {
                 if(this.yVelocity){
                     if (this.yVelocity > 0){
                         this.hitFloor(obj);
-
-                        this.y = (obj.y - this.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
                     } else {
                         //hit ceiling logic. I am not sorry
-                        this.hitCeiling(levelObjects);
-
-                        //snap to ceiling if inside
-                        this.y = (obj.y + obj.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
+                        this.hitCeiling(obj);
                     }
 
                 }
@@ -352,9 +347,14 @@ class Entity {
     hitFloor(obj){
         this.onGround=true;
         this.yVelocity=0;
+
+        this.y = (obj.y - this.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
     }
     hitCeiling(obj){
         this.yVelocity=0;
+
+        //snap to ceiling if inside
+        this.y = (obj.y + obj.h) + obj.hitboxOffsetY - this.hitboxOffsetY;
     }
 
     applyGravity(){
@@ -443,13 +443,14 @@ class Goomba extends Enemy {
 
         this.dead=false;
         this.animFrameOnDeath;
+
+        this.canCollide = false;
     }
 
     stomp(stomper){
         this.animName="die";
         this.animFrameOnDeath=this.animFrame;
         this.dead=true;
-        this.canCollide=false;
     }
 
     update(levelObjects){
@@ -563,29 +564,16 @@ class Player extends Entity {
         }
     }
 
-    getObjectsOfClass(levelObjects, classToLookFor){
-        levelObjects = Array.isArray(levelObjects) ? levelObjects : [levelObjects];
-
-        let objectsOfClass=[];
-        this.getCollisions(levelObjects).forEach((obj) => {
-            let isCorrectClass = eval(`obj instanceof ${classToLookFor}`);
-            if (isCorrectClass){
-                objectsOfClass.push(obj);
+    hitFloor(obj){
+        if(obj instanceof Enemy){
+            if(!obj.dead){
+                playSound("stomp.wav"); 
+                obj.stomp(this);
             }
-        })
-        return objectsOfClass;
-    }
-
-    hitFloor(levelObjects){
-        let collidedEnemies = this.getObjectsOfClass(levelObjects, "Enemy");
-        if(collidedEnemies.length){
-            const enemy = collidedEnemies[0]; //always the first one you touch
-            playSound("stomp.wav"); 
-            enemy.stomp(this);
 
             this.yVelocity=-this.jumpHeightMax;
         }else{
-            super.hitFloor(levelObjects);
+            super.hitFloor(obj);
         }
 
         //stop jump sound when land
@@ -594,13 +582,13 @@ class Player extends Entity {
         }
     }
 
-    hitCeiling(levelObjects){
-        super.hitCeiling(levelObjects);
+    hitCeiling(obj){
+        super.hitCeiling(obj);
 
         playSound("bump.wav"); 
+        stopSound("player/"+this.power + "Jump.wav");
         
-        let collidedBlocks = this.getObjectsOfClass(levelObjects, "ContainerBlock");
-        if(collidedBlocks.length){
+        if(obj instanceof ContainerBlock){
             let blockToHit;
 
             for (const obj of collidedBlocks){
